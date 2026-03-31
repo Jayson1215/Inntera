@@ -1,5 +1,5 @@
-import pool from '@/lib/db';
-import { Booking, BookingRoom } from '@/types';
+import pool from '@/app/lib/db';
+import { Booking, BookingRoom } from '@/app/types';
 
 // Generate booking reference: HTL-{HOTEL_ID}-{YYYYMMDD}-{RANDOM6}
 function generateBookingReference(hotelId: number): string {

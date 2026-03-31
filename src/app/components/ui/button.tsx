@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cva, type CVAProps } from "class-variance-authority"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/app/components/ui/utils"
 
@@ -8,15 +8,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-slate-900 text-slate-50 hover:bg-slate-900/90 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-50/90",
+        default: "bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700",
         destructive:
           "bg-red-500 text-slate-50 hover:bg-red-500/90 dark:bg-red-900 dark:text-slate-50 dark:hover:bg-red-900/90",
         outline:
-          "border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800 dark:hover:text-slate-50",
+          "border border-emerald-300 bg-white hover:bg-emerald-50 hover:text-emerald-900 dark:border-emerald-700 dark:bg-slate-950 dark:hover:bg-slate-800 dark:hover:text-emerald-300",
         secondary:
-          "bg-slate-100 text-slate-900 hover:bg-slate-100/80 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-800/80",
-        ghost: "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50",
-        link: "text-slate-900 underline-offset-4 hover:underline dark:text-slate-50",
+          "bg-emerald-100 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-900 dark:text-emerald-100 dark:hover:bg-emerald-800",
+        ghost: "hover:bg-emerald-100 hover:text-emerald-900 dark:hover:bg-emerald-900 dark:hover:text-emerald-100",
+        link: "text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -32,17 +32,26 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonVariants = VariantProps<typeof buttonVariants>
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    CVAProps<typeof buttonVariants> {
+    ButtonVariants {
   asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? "div" : "button"
+    if (asChild) {
+      return (
+        <div
+          className={cn(buttonVariants({ variant, size, className }))}
+          {...(props as React.HTMLAttributes<HTMLDivElement>)}
+        />
+      )
+    }
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}

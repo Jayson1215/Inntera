@@ -11,9 +11,17 @@ interface User {
   hotel_id?: number;
 }
 
+interface SignUpData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
+
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (data: SignUpData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -98,6 +106,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signup = useCallback(async (data: SignUpData): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Validate input
+      if (!data.firstName || !data.lastName || !data.email || !data.password) {
+        const err = 'All fields are required';
+        setError(err);
+        return { success: false, error: err };
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.email)) {
+        const err = 'Invalid email format';
+        setError(err);
+        return { success: false, error: err };
+      }
+
+      // Validate password length
+      if (data.password.length < 6) {
+        const err = 'Password must be at least 6 characters';
+        setError(err);
+        return { success: false, error: err };
+      }
+
+      // Check if email already exists
+      if (guests.some(g => g.email === data.email)) {
+        const err = 'Email already registered';
+        setError(err);
+        return { success: false, error: err };
+      }
+
+      // Check if admin or staff email
+      if (data.email === adminUser.email || data.email === staffUser.email) {
+        const err = 'This email is already in use';
+        setError(err);
+        return { success: false, error: err };
+      }
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Create new guest
+      const newGuestId = Math.max(...guests.map(g => g.guest_id), 0) + 1;
+      const newGuest: any = {
+        guest_id: newGuestId,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        phone: '',
+        address: '',
+        password: data.password,
+        created_at: new Date().toISOString()
+      };
+
+      // Add to guests array (simulating database insertion)
+      guests.push(newGuest);
+
+      // Log the user in
+      const userData: User = {
+        email: data.email,
+        role: 'guest',
+        id: newGuestId,
+        name: `${data.firstName} ${data.lastName}`
+      };
+      setUser(userData);
+      localStorage.setItem('hotel_user', JSON.stringify(userData));
+
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Signup failed';
+      setError(message);
+      return { success: false, error: message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     setError(null);
@@ -105,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading, error }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated: !!user, isLoading, error }}>
       {children}
     </AuthContext.Provider>
   );

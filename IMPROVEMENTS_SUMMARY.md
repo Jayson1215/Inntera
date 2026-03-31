@@ -1,4 +1,4 @@
-# Hotel Booking System Improvements
+# Inntera - Hotel Booking System Improvements
 
 ## Summary of All 6 Improvements
 

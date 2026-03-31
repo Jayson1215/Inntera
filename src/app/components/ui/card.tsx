@@ -2,6 +2,33 @@ import * as React from "react"
 
 import { cn } from "@/app/components/ui/utils"
 
+// ===== COLOR CONFIGURATION =====
+// Easily adjust these colors to change the entire card theme
+const CARD_COLORS = {
+  // Main card background
+  bgLight: "bg-white",
+  bgDark: "dark:bg-emerald-950",
+  
+  // Borders
+  borderLight: "border-slate-200",
+  borderDark: "dark:border-emerald-700",
+  
+  // Header background - Professional teal/emerald
+  headerBgLight: "bg-emerald-50",
+  headerBgDark: "dark:bg-emerald-900",
+  
+  // Title text - Professional teal/emerald
+  titleColorLight: "text-emerald-700",
+  titleColorDark: "dark:text-emerald-300",
+  
+  // Description text
+  descColorLight: "text-slate-600",
+  descColorDark: "dark:text-slate-300",
+  
+  // Shadow
+  shadow: "shadow-md hover:shadow-lg transition-shadow",
+}
+
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -9,7 +36,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50",
+      `rounded-lg border ${CARD_COLORS.borderLight} ${CARD_COLORS.bgLight} text-slate-950 ${CARD_COLORS.shadow} ${CARD_COLORS.bgDark} ${CARD_COLORS.borderDark} dark:text-slate-50`,
       className
     )}
     {...props}
@@ -23,7 +50,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    className={cn(`flex flex-col space-y-1.5 p-6 ${CARD_COLORS.headerBgLight} ${CARD_COLORS.headerBgDark} border-b ${CARD_COLORS.borderLight} ${CARD_COLORS.borderDark}`, className)}
     {...props}
   />
 ))
@@ -36,7 +63,7 @@ const CardTitle = React.forwardRef<
   <h2
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      `text-2xl font-bold leading-none tracking-tight ${CARD_COLORS.titleColorLight} ${CARD_COLORS.titleColorDark}`,
       className
     )}
     {...props}
@@ -50,7 +77,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
+    className={cn(`text-sm ${CARD_COLORS.descColorLight} ${CARD_COLORS.descColorDark}`, className)}
     {...props}
   />
 ))
@@ -70,7 +97,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    className={cn(`flex items-center p-6 pt-0 border-t ${CARD_COLORS.borderLight} ${CARD_COLORS.borderDark}`, className)}
     {...props}
   />
 ))

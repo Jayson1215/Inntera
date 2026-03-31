@@ -1,5 +1,5 @@
-import pool from '@/lib/db';
-import { Charge } from '@/types';
+import pool from '@/app/lib/db';
+import { Charge } from '@/app/types';
 
 export const chargeRepository = {
   async getByBooking(bookingId: number): Promise<Charge[]> {

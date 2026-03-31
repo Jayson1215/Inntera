@@ -6,6 +6,7 @@ import { ClientLayout } from './layouts/ClientLayout';
 
 // Public pages
 import { LoginPage } from './pages/LoginPage';
+import { SignUpPage } from './pages/SignUpPage';
 import { HomePage } from './pages/HomePage';
 
 // Admin pages
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: 'login', Component: LoginPage },
+      { path: 'signup', Component: SignUpPage },
       
       // Admin routes
       {

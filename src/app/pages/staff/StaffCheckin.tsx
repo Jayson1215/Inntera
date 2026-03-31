@@ -1,21 +1,27 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Search, CheckCircle, LogOut, AlertCircle, Calendar } from 'lucide-react';
-import { bookings, Booking, guests, bookingRooms, rooms } from '../../data/mockData';
+import { Booking, guests, bookingRooms } from '../../data/mockData';
+import { useBooking } from '../../context/BookingContext';
 import { toast } from 'sonner';
 
 export function StaffCheckin() {
+  const { bookings, rooms, updateBookingStatus, updateBookingNotes, refreshFromStorage } = useBooking();
   const [searchTerm, setSearchTerm] = useState('');
-  const [bookingList, setBookingList] = useState<Booking[]>(bookings);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Refresh data from storage when component mounts
+  useEffect(() => {
+    refreshFromStorage();
+  }, [refreshFromStorage]);
 
   const handleCheckIn = async (booking: Booking) => {
     setSelectedBooking(booking);
@@ -37,11 +43,8 @@ export function StaffCheckin() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      setBookingList(bookingList.map(b => 
-        b.booking_id === selectedBooking.booking_id 
-          ? { ...b, booking_status: 'checked-in' as const, notes, modified_at: new Date().toISOString() } 
-          : b
-      ));
+      updateBookingStatus(selectedBooking.booking_id, 'checked-in');
+      updateBookingNotes(selectedBooking.booking_id, notes);
       
       toast.success('Guest checked in successfully');
       setIsDialogOpen(false);
@@ -59,12 +62,7 @@ export function StaffCheckin() {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      setBookingList(bookingList.map(b => 
-        b.booking_id === bookingId 
-          ? { ...b, booking_status: 'checked-out' as const, modified_at: new Date().toISOString() } 
-          : b
-      ));
-      
+      updateBookingStatus(bookingId, 'checked-out');
       toast.success('Guest checked out successfully');
     } catch (err) {
       toast.error('Failed to process check-out');
@@ -73,7 +71,7 @@ export function StaffCheckin() {
     }
   };
 
-  const filteredBookings = bookingList.filter(booking => {
+  const filteredBookings = bookings.filter(booking => {
     const guest = guests.find(g => g.guest_id === booking.guest_id);
     const guestName = `${guest?.first_name} ${guest?.last_name}`.toLowerCase();
     const reference = booking.booking_reference.toLowerCase();
@@ -89,9 +87,9 @@ export function StaffCheckin() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return <Badge className="bg-yellow-100 text-yellow-800">Ready for Check-in</Badge>;
+        return <Badge className="bg-yellow-200 text-yellow-800 font-semibold">Ready for Check-in</Badge>;
       case 'checked-in':
-        return <Badge className="bg-blue-100 text-blue-800">Checked In</Badge>;
+        return <Badge className="bg-green-200 text-green-800 font-semibold">Checked In</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -102,7 +100,7 @@ export function StaffCheckin() {
       return (
         <Button 
           onClick={() => handleCheckIn(booking)}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-emerald-600 hover:bg-emerald-700"
         >
           <CheckCircle className="w-4 h-4 mr-2" />
           Check In
@@ -112,8 +110,7 @@ export function StaffCheckin() {
       return (
         <Button 
           onClick={() => processCheckOut(booking.booking_id)}
-          variant="outline"
-          className="border-red-300"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
           disabled={isProcessing}
         >
           <LogOut className="w-4 h-4 mr-2" />
@@ -126,21 +123,49 @@ export function StaffCheckin() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
+      <style>{`
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-down { animation: fadeInDown 0.6s ease-out forwards; }
+        .table-card { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #d1e7e5; }
+        .stat-card { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #d1e7e5; }
+        .stat-ready { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #fbbf24; }
+        .stat-ready-icon { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; }
+        .stat-ready-value { color: #d97706; }
+        .stat-checkin { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 2px solid #10b981; }
+        .stat-checkin-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .stat-checkin-value { color: #047857; }
+        .booking-card { background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border: 1px solid #d1e7e5; }
+        .booking-card:hover { box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15); transition: all 0.3s ease; }
+        label { color: #111827 !important; }
+        .notes-box { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #d1e7e5; }
+        .search-icon { color: #059669; }
+        [role="dialog"] { background-color: #ffffff !important; }
+        [role="dialog"] label { color: #111827 !important; }
+        [role="dialog"] input { color: #374151 !important; background-color: #ffffff !important; }
+        [role="dialog"] textarea { color: #374151 !important; background-color: #ffffff !important; border-color: #d1e7e5 !important; }
+        [role="dialog"] h2 { color: #111827 !important; }
+        [role="dialog"] p { color: #374151 !important; }
+        [role="dialog"] button { color: #ffffff !important; }
+        .alert-box { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #d1e7e5; }
+        .alert-box .icon { color: #059669; }
+        .alert-box p { color: #047857; }
+        tbody td { color: #374151; }
+      `}</style>
+      <div className="mb-8 animate-fade-in-down">
         <h1 className="text-3xl font-bold text-gray-900">Check-in / Check-out</h1>
         <p className="text-gray-500 mt-1">Process guest arrivals and departures</p>
       </div>
 
       {/* Search */}
-      <Card className="mb-6">
+      <Card className="mb-6 table-card">
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 search-icon w-5 h-5" />
             <Input
               placeholder="Search by guest name or booking reference..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-emerald-200 focus:border-emerald-500"
             />
           </div>
         </CardContent>
@@ -148,25 +173,31 @@ export function StaffCheckin() {
 
       {/* Stats */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <Card>
+        <Card className="stat-ready">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Ready for Check-in</p>
-                <p className="text-3xl font-bold text-gray-900">{confirmedCheckIns.length}</p>
+                <p className="text-sm font-semibold text-amber-800 mb-1">Ready for Check-in</p>
+                <p className="text-4xl font-bold stat-ready-value">{confirmedCheckIns.length}</p>
+                <p className="text-xs text-amber-700 mt-2">Guests pending arrival</p>
               </div>
-              <Calendar className="w-12 h-12 text-yellow-100" />
+              <div className="stat-ready-icon w-16 h-16 rounded-full flex items-center justify-center">
+                <Calendar className="w-8 h-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-checkin">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Currently Checked In</p>
-                <p className="text-3xl font-bold text-gray-900">{checkedInGuests.length}</p>
+                <p className="text-sm font-semibold text-emerald-800 mb-1">Currently Checked In</p>
+                <p className="text-4xl font-bold stat-checkin-value">{checkedInGuests.length}</p>
+                <p className="text-xs text-emerald-700 mt-2">Active guests in hotel</p>
               </div>
-              <CheckCircle className="w-12 h-12 text-blue-100" />
+              <div className="stat-checkin-icon w-16 h-16 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -189,7 +220,7 @@ export function StaffCheckin() {
             const checkOutDate = new Date(booking.checkout_date).toLocaleDateString();
 
             return (
-              <Card key={booking.booking_id} className="hover:shadow-md transition-shadow">
+              <Card key={booking.booking_id} className="booking-card">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between gap-6">
                     <div className="flex-1">
@@ -218,7 +249,7 @@ export function StaffCheckin() {
                       </div>
 
                       {booking.notes && (
-                        <div className="bg-gray-50 p-2 rounded text-sm italic text-gray-600">
+                        <div className="notes-box p-3 rounded text-sm italic text-emerald-700">
                           Notes: {booking.notes}
                         </div>
                       )}
@@ -246,9 +277,9 @@ export function StaffCheckin() {
 
           {selectedBooking && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded p-3 flex gap-2">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800">
+              <div className="alert-box p-3 flex gap-2 rounded">
+                <AlertCircle className="icon w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
                   <p className="font-medium">Confirm check-in for booking {selectedBooking.booking_reference}</p>
                 </div>
               </div>
@@ -276,7 +307,7 @@ export function StaffCheckin() {
                 <Button 
                   onClick={processCheckIn}
                   disabled={isProcessing}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {isProcessing ? 'Processing...' : 'Confirm Check-in'}
                 </Button>

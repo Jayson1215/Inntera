@@ -110,7 +110,26 @@ export function AdminHotels() {
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+      <style>{`
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-down { animation: fadeInDown 0.6s ease-out forwards; }
+        .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+        .table-card { background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); }
+        .table-row { transition: all 0.3s ease; border-bottom: 1px solid #000 !important; }
+        .table-row:hover { background-color: #f0fdf4; }
+        thead { background-color: #f3f4f6; }
+        thead th { font-weight: 700; color: #374151; padding: 14px; }
+        tbody td { color: #374151; }
+        [role="dialog"] { background-color: #ffffff !important; }
+        [role="dialog"] label { color: #111827 !important; }
+        [role="dialog"] input { color: #374151 !important; background-color: #ffffff !important; }
+        [role="dialog"] h2 { color: #111827 !important; }
+        [role="dialog"] p { color: #374151 !important; }
+        [role="dialog"] button { color: #ffffff !important; }
+      `}</style>
+      
+      <div className="flex justify-between items-center mb-8 animate-fade-in-down">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Hotels Management</h1>
           <p className="text-gray-500 mt-1">Manage your hotel properties ({hotelList.length})</p>
@@ -191,7 +210,7 @@ export function AdminHotels() {
                   id="timezone"
                   value={formData.timezone || 'America/New_York'}
                   onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-emerald-500"
                 >
                   {timezones.map(tz => (
                     <option key={tz} value={tz}>{tz}</option>
@@ -212,7 +231,7 @@ export function AdminHotels() {
         </Dialog>
       </div>
 
-      <Card>
+      <Card className="table-card border border-gray-200 animate-fade-in-up rounded-xl overflow-hidden shadow-lg">
         <CardContent className="p-0">
           {hotelList.length === 0 ? (
             <div className="p-8 text-center text-gray-500">

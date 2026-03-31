@@ -1,12 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { 
-  Building2, 
-  BedDouble, 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  TrendingUp 
-} from 'lucide-react';
+import { Building2, BedDouble, Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { hotels, rooms, bookings, guests, payments } from '../../data/mockData';
 
 export function AdminDashboard() {
@@ -28,8 +21,8 @@ export function AdminDashboard() {
       title: 'Total Hotels',
       value: totalHotels,
       icon: Building2,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-100',
     },
     {
       title: 'Total Rooms',
@@ -56,7 +49,7 @@ export function AdminDashboard() {
     },
     {
       title: 'Total Revenue',
-      value: `$${totalRevenue.toLocaleString()}`,
+      value: `₱${totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100',
@@ -76,10 +69,131 @@ export function AdminDashboard() {
     .slice(0, 5);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-500 mt-1">Overview of your hotel management system</p>
+    <div>
+      <style>{`
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeInScale {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-fade-in-down {
+          animation: fadeInDown 0.6s ease-out forwards;
+        }
+
+        .animate-fade-in-scale {
+          animation: fadeInScale 0.5s ease-out forwards;
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+
+        .stat-card {
+          animation: fadeInScale 0.5s ease-out forwards;
+        }
+
+        .reservation-row {
+          animation: slideInLeft 0.4s ease-out forwards;
+        }
+
+        .stat-card {
+          border-top: 4px solid;
+          background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+        }
+
+        .stat-card:nth-child(1) {
+          border-top-color: #059669;
+        }
+
+        .stat-card:nth-child(2) {
+          border-top-color: #16a34a;
+        }
+
+        .stat-card:nth-child(3) {
+          border-top-color: #a855f7;
+        }
+
+        .stat-card:nth-child(4) {
+          border-top-color: #ea580c;
+        }
+
+        .stat-card:nth-child(5) {
+          border-top-color: #059669;
+        }
+
+        .stat-card:nth-child(6) {
+          border-top-color: #ec4899;
+        }
+
+        .stat-card:hover {
+          box-shadow: 0 20px 25px -5px rgba(5, 150, 105, 0.15), 0 10px 10px -5px rgba(5, 150, 105, 0.04) !important;
+        }
+
+        .stat-icon-box {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .stat-icon-box::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255, 0.4), transparent);
+          pointer-events: none;
+        }
+
+        .reservation-card-header {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+        }
+      `}</style>
+
+      <div className="mb-8 animate-fade-in-down">
+        <h1 className="text-3xl font-bold text-gray-900">Performance Overview</h1>
+        <p className="text-gray-600 mt-2">Monitor your hotels and bookings in real-time</p>
       </div>
 
       {/* Stats Grid */}
@@ -87,18 +201,22 @@ export function AdminDashboard() {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index}>
-              <CardContent className="p-6">
+            <Card 
+              key={index} 
+              className="stat-card border-gray-200 hover:shadow-2xl transition-all bg-white rounded-xl overflow-hidden"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <CardContent className="p-6 bg-white">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">{stat.title}</p>
+                    <p className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">{stat.value}</p>
                     {stat.subtitle && (
-                      <p className="text-sm text-gray-500 mt-1">{stat.subtitle}</p>
+                      <p className="text-xs text-emerald-600 font-medium">{stat.subtitle}</p>
                     )}
                   </div>
-                  <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
+                  <div className={`stat-icon-box w-16 h-16 ${stat.bgColor} rounded-xl flex items-center justify-center shadow-md`}>
+                    <Icon className={`w-8 h-8 ${stat.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -108,37 +226,42 @@ export function AdminDashboard() {
       </div>
 
       {/* Recent Bookings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Bookings</CardTitle>
+      <Card className="border border-gray-200 bg-white animate-fade-in-up rounded-xl overflow-hidden shadow-lg">
+        <CardHeader className="reservation-card-header border-b-0 py-6">
+          <CardTitle className="text-white text-2xl">Latest Reservations</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentBookings.map((booking) => {
+        <CardContent className="p-0 bg-white">
+          <div>
+            {recentBookings.map((booking, index) => {
               const hotel = hotels.find(h => h.hotel_id === booking.hotel_id);
               const guest = guests.find(g => g.guest_id === booking.guest_id);
               return (
-                <div key={booking.booking_id} className="flex items-center justify-between py-3 border-b last:border-0">
+                <div 
+                  key={booking.booking_id} 
+                  className="flex items-center justify-between p-5 hover:bg-emerald-50/50 transition-all bg-white border-b border-gray-100 reservation-row group"
+                  style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+                >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{booking.booking_reference}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">{booking.booking_reference}</p>
+                    <p className="text-sm text-gray-600 mt-1.5 flex items-center gap-2">
+                      <span className="inline-block w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
                       {guest?.first_name} {guest?.last_name} • {hotel?.name}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-8 ml-4">
                     <div className="text-right">
-                      <p className="text-sm text-gray-500">Check-in</p>
-                      <p className="text-sm font-medium">
-                        {new Date(booking.checkin_date).toLocaleDateString()}
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Check-In</p>
+                      <p className="text-sm font-bold text-gray-900 mt-1">
+                        {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </p>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      booking.booking_status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                      booking.booking_status === 'checked-in' ? 'bg-blue-100 text-blue-700' :
-                      booking.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'
+                    <div className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm ${
+                      booking.booking_status === 'confirmed' ? 'bg-green-100 text-green-800 ring-1 ring-green-300' :
+                      booking.booking_status === 'checked-in' ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300' :
+                      booking.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-300' :
+                      'bg-gray-100 text-gray-800 ring-1 ring-gray-300'
                     }`}>
-                      {booking.booking_status}
+                      {booking.booking_status.toUpperCase()}
                     </div>
                   </div>
                 </div>

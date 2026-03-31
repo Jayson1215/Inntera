@@ -1,5 +1,5 @@
-import pool from '@/lib/db';
-import { Staff, Manager } from '@/types';
+import pool from '@/app/lib/db';
+import { Staff, Manager } from '@/app/types';
 
 export const staffRepository = {
   async getAll(): Promise<Staff[]> {

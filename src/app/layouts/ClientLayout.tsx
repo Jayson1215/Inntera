@@ -59,15 +59,17 @@ export function ClientLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Hotel className="w-8 h-8 text-blue-600" />
-              <span className="ml-2 text-xl font-semibold text-gray-900">HotelBook</span>
-            </div>
+          <div className="flex justify-between h-16 items-center">
+            <Link to="/client/dashboard" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <Hotel className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900">Inntera</span>
+            </Link>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -75,10 +77,10 @@ export function ClientLayout() {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                       isActive
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-700 hover:bg-gray-50'
+                        ? 'bg-red-50 text-red-600'
+                        : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -87,18 +89,15 @@ export function ClientLayout() {
                 );
               })}
 
-              <div className="border-l pl-4 ml-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700">{user.name}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Logout
-                  </Button>
-                </div>
+              <div className="border-l border-gray-200 pl-4 ml-4 flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                <Button
+                  className="bg-red-500 hover:bg-red-600 text-white text-sm py-1.5 px-3 rounded-md"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Logout
+                </Button>
               </div>
             </div>
           </div>

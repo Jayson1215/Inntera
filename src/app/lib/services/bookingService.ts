@@ -1,11 +1,11 @@
-import { hotelRepository } from '@/lib/repositories/hotelRepository';
-import { roomTypeRepository } from '@/lib/repositories/roomTypeRepository';
-import { roomRepository } from '@/lib/repositories/roomRepository';
-import { rateRepository } from '@/lib/repositories/rateRepository';
-import { guestRepository } from '@/lib/repositories/guestRepository';
-import { bookingRepository, bookingRoomRepository } from '@/lib/repositories/bookingRepository';
-import { chargeRepository } from '@/lib/repositories/chargeRepository';
-import { Room, RoomType, Rate, Guest } from '@/types';
+import { hotelRepository } from '@/app/lib/repositories/hotelRepository';
+import { roomTypeRepository } from '@/app/lib/repositories/roomTypeRepository';
+import { roomRepository } from '@/app/lib/repositories/roomRepository';
+import { rateRepository } from '@/app/lib/repositories/rateRepository';
+import { guestRepository } from '@/app/lib/repositories/guestRepository';
+import { bookingRepository, bookingRoomRepository } from '@/app/lib/repositories/bookingRepository';
+import { chargeRepository } from '@/app/lib/repositories/chargeRepository';
+import { Room, RoomType, Rate, Guest } from '@/app/types';
 
 export const bookingService = {
   // Calculate total price for a booking

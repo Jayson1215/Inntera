@@ -1,4 +1,4 @@
-# Hotel Booking System - Enterprise Platform
+# Inntera - Enterprise Hotel Booking System Platform
 
 A comprehensive hotel booking management system built with Next.js 14, MySQL, and TypeScript. Features include customer bookings, admin management, and staff operations.
 
@@ -92,7 +92,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
-DB_NAME=hotel_booking_system
+DB_NAME=inntera_db
 
 # NextAuth Configuration
 NEXTAUTH_SECRET=your-secret-key-min-32-chars-very-secure-string
@@ -108,13 +108,13 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 1. Create MySQL database:
 ```bash
 mysql -u root -p
-CREATE DATABASE hotel_booking_system;
-USE hotel_booking_system;
+CREATE DATABASE inntera_db;
+USE inntera_db;
 ```
 
 2. Import schema:
 ```bash
-mysql -u root -p hotel_booking_system < database/schema.sql
+mysql -u root -p inntera_db < database/schema.sql
 ```
 
 Or run SQL manually in phpMyAdmin:
@@ -289,7 +289,7 @@ const [rows] = await connection.query(
 ### Database Connection Error
 - Check MySQL is running
 - Verify DB credentials in .env.local
-- Ensure database exists: `CREATE DATABASE hotel_booking_system;`
+- Ensure database exists: `CREATE DATABASE inntera_db;`
 
 ### Authentication Issues
 - Clear browser cookies

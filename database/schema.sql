@@ -1,4 +1,4 @@
--- Hotel Booking System - Database Schema
+-- Inntera - Enterprise Hotel Booking System Database Schema
 -- MySQL 8.0+
 
 -- Create Hotels Table
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS rates (
   start_date DATE,
   end_date DATE,
   price DECIMAL(10,2),
-  currency VARCHAR(10) DEFAULT 'USD',
+  currency VARCHAR(10) DEFAULT 'PHP',
   FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id) ON DELETE CASCADE,
   FOREIGN KEY (room_type_id) REFERENCES room_types(room_type_id) ON DELETE CASCADE,
   INDEX idx_hotel_id (hotel_id),
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS payments (
   payment_id INT AUTO_INCREMENT PRIMARY KEY,
   booking_id INT NOT NULL,
   amount DECIMAL(10,2),
-  currency VARCHAR(10) DEFAULT 'USD',
+  currency VARCHAR(10) DEFAULT 'PHP',
   payment_method VARCHAR(100),
   status VARCHAR(50),
   transaction_reference VARCHAR(255),
@@ -207,9 +207,9 @@ INSERT INTO amenities (name, description) VALUES
 
 -- Insert sample room types for hotel 1
 INSERT INTO room_types (hotel_id, name, description, max_occupancy, base_price, amenities_summary) VALUES
-(1, 'Standard Room', 'Basic single room', 1, 150.00, 'WiFi, AC, Bed, TV'),
-(1, 'Double Room', 'Room for two', 2, 200.00, 'WiFi, AC, Double Bed, TV'),
-(1, 'Suite', 'Luxury suite',  4, 350.00, 'WiFi, AC, Living Area, Jacuzzi');
+(1, 'Standard Room', 'Basic single room', 1, 8250.00, 'WiFi, AC, Bed, TV'),
+(1, 'Double Room', 'Room for two', 2, 11000.00, 'WiFi, AC, Double Bed, TV'),
+(1, 'Suite', 'Luxury suite',  4, 19250.00, 'WiFi, AC, Living Area, Jacuzzi');
 
 -- Insert sample rooms for hotel 1
 INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status) VALUES
@@ -221,6 +221,6 @@ INSERT INTO rooms (hotel_id, room_type_id, room_number, floor, status) VALUES
 
 -- Insert sample rates
 INSERT INTO rates (hotel_id, room_type_id, start_date, end_date, price, currency) VALUES
-(1, 1, '2024-01-01', '2024-12-31', 150.00, 'USD'),
-(1, 2, '2024-01-01', '2024-12-31', 200.00, 'USD'),
-(1, 3, '2024-01-01', '2024-12-31', 350.00, 'USD');
+(1, 1, '2024-01-01', '2024-12-31', 8250.00, 'PHP'),
+(1, 2, '2024-01-01', '2024-12-31', 11000.00, 'PHP'),
+(1, 3, '2024-01-01', '2024-12-31', 19250.00, 'PHP');

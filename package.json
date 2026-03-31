@@ -1,7 +1,7 @@
 {
-  "name": "hotel-booking-system",
+  "name": "inntera",
   "version": "1.0.0",
-  "description": "Enterprise Hotel Booking System with Admin, Staff, and Client Portals",
+  "description": "Inntera - Enterprise Hotel Booking System with Admin, Staff, and Client Portals",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

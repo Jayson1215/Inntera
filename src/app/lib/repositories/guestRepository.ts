@@ -1,5 +1,5 @@
-import pool from '@/lib/db';
-import { Guest } from '@/types';
+import pool from '@/app/lib/db';
+import { Guest } from '@/app/types';
 
 export const guestRepository = {
   async getAll(): Promise<Guest[]> {

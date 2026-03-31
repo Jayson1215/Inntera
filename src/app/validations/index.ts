@@ -48,7 +48,7 @@ export const RateCreateSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   price: z.number().positive('Price must be positive'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('PHP'),
 }).refine((data: any) => new Date(data.start_date) < new Date(data.end_date), {
   message: 'End date must be after start date',
   path: ['end_date'],
@@ -60,7 +60,7 @@ export const RateUpdateSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
   price: z.number().positive('Price must be positive').optional(),
-  currency: z.string().default('USD').optional(),
+  currency: z.string().default('PHP').optional(),
 });
 
 // Guest Schemas
@@ -108,7 +108,7 @@ export const ChargeCreateSchema = z.object({
 export const PaymentCreateSchema = z.object({
   booking_id: z.number().int().positive(),
   amount: z.number().positive('Amount must be positive'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('PHP'),
   payment_method: z.string().min(1, 'Payment method is required'),
 });
 

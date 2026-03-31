@@ -220,7 +220,7 @@ export const roomTypes: RoomType[] = [
     name: "Deluxe King",
     description: "Spacious room with king-size bed, city views, and premium amenities",
     max_occupancy: 2,
-    base_price: 299.99,
+    base_price: 16500,
     amenities_summary: "King bed, City view, WiFi, Mini bar, Coffee maker",
   },
   {
@@ -229,7 +229,7 @@ export const roomTypes: RoomType[] = [
     name: "Executive Suite",
     description: "Luxurious suite with separate living area, premium furnishings",
     max_occupancy: 4,
-    base_price: 599.99,
+    base_price: 33000,
     amenities_summary: "King bed, Living room, City view, WiFi, Mini bar, Jacuzzi",
   },
   {
@@ -238,7 +238,7 @@ export const roomTypes: RoomType[] = [
     name: "Ocean View Room",
     description: "Beautiful room with direct ocean views and balcony",
     max_occupancy: 2,
-    base_price: 349.99,
+    base_price: 19250,
     amenities_summary: "Queen bed, Ocean view, Balcony, WiFi, Mini bar",
   },
   {
@@ -247,7 +247,7 @@ export const roomTypes: RoomType[] = [
     name: "Beachfront Villa",
     description: "Private villa with direct beach access and luxury amenities",
     max_occupancy: 6,
-    base_price: 899.99,
+    base_price: 49500,
     amenities_summary: "2 Bedrooms, Private pool, Beach access, Full kitchen",
   },
   {
@@ -256,7 +256,7 @@ export const roomTypes: RoomType[] = [
     name: "Mountain Cabin",
     description: "Cozy cabin with mountain views and fireplace",
     max_occupancy: 4,
-    base_price: 249.99,
+    base_price: 13750,
     amenities_summary: "Queen bed, Fireplace, Mountain view, WiFi, Kitchenette",
   },
 ];
@@ -299,11 +299,11 @@ export const rooms: Room[] = [
 ];
 
 export const rates: Rate[] = [
-  { rate_id: 1, hotel_id: 1, room_type_id: 1, start_date: "2026-01-01", end_date: "2026-06-30", price: 299.99, currency: "USD" },
-  { rate_id: 2, hotel_id: 1, room_type_id: 1, start_date: "2026-07-01", end_date: "2026-12-31", price: 349.99, currency: "USD" },
-  { rate_id: 3, hotel_id: 1, room_type_id: 2, start_date: "2026-01-01", end_date: "2026-12-31", price: 599.99, currency: "USD" },
-  { rate_id: 4, hotel_id: 2, room_type_id: 3, start_date: "2026-01-01", end_date: "2026-12-31", price: 349.99, currency: "USD" },
-  { rate_id: 5, hotel_id: 2, room_type_id: 4, start_date: "2026-01-01", end_date: "2026-12-31", price: 899.99, currency: "USD" },
+  { rate_id: 1, hotel_id: 1, room_type_id: 1, start_date: "2026-01-01", end_date: "2026-06-30", price: 16500, currency: "PHP" },
+  { rate_id: 2, hotel_id: 1, room_type_id: 1, start_date: "2026-07-01", end_date: "2026-12-31", price: 19250, currency: "PHP" },
+  { rate_id: 3, hotel_id: 1, room_type_id: 2, start_date: "2026-01-01", end_date: "2026-12-31", price: 33000, currency: "PHP" },
+  { rate_id: 4, hotel_id: 2, room_type_id: 3, start_date: "2026-01-01", end_date: "2026-12-31", price: 19250, currency: "PHP" },
+  { rate_id: 5, hotel_id: 2, room_type_id: 4, start_date: "2026-01-01", end_date: "2026-12-31", price: 49500, currency: "PHP" },
 ];
 
 export const guests: Guest[] = [
@@ -436,8 +436,8 @@ export const payments: Payment[] = [
   {
     payment_id: 1,
     booking_id: 1,
-    amount: 1379.95,
-    currency: "USD",
+    amount: 75847,
+    currency: "PHP",
     payment_method: "Credit Card",
     status: "completed",
     transaction_reference: "TXN-2026-001",
@@ -446,8 +446,8 @@ export const payments: Payment[] = [
   {
     payment_id: 2,
     booking_id: 2,
-    amount: 1034.97,
-    currency: "USD",
+    amount: 56923,
+    currency: "PHP",
     payment_method: "Credit Card",
     status: "completed",
     transaction_reference: "TXN-2026-002",
@@ -456,8 +456,8 @@ export const payments: Payment[] = [
   {
     payment_id: 3,
     booking_id: 3,
-    amount: 4499.95,
-    currency: "USD",
+    amount: 247497,
+    currency: "PHP",
     payment_method: "Pending",
     status: "pending",
     transaction_reference: "TXN-2026-003",
@@ -467,7 +467,7 @@ export const payments: Payment[] = [
 
 // Admin credentials
 export const adminUser = {
-  email: "admin@hotelbook.com",
+  email: "admin@inntera.com",
   password: "admin123",
   role: "admin",
 };
