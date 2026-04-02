@@ -1,276 +1,156 @@
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Building2, BedDouble, Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
-import { hotels, rooms, bookings, guests, payments } from '../../data/mockData';
+import { useBooking } from '../../context/BookingContext';
+import { Hotel, Room, Booking, Guest } from '../../types';
 
 export function AdminDashboard() {
-  // Calculate stats
+  const { hotels, rooms, bookings, guests, isLoading } = useBooking();
+
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center">
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Building2 className="w-8 h-8 text-indigo-600" />
+          </div>
+        </div>
+        <p className="mt-6 text-sm font-semibold text-slate-500 tracking-widest uppercase animate-pulse">Loading Dashboard...</p>
+      </div>
+    );
+  }
+
   const totalHotels = hotels.length;
   const totalRooms = rooms.length;
-  const availableRooms = rooms.filter(r => r.status === 'available').length;
+  const availableRooms = rooms.filter((r: Room) => r.status === 'available').length;
   const totalBookings = bookings.length;
-  const activeBookings = bookings.filter(b => 
+  const activeBookings = bookings.filter((b: Booking) => 
     b.booking_status === 'confirmed' || b.booking_status === 'checked-in'
   ).length;
   const totalGuests = guests.length;
-  const totalRevenue = payments
-    .filter(p => p.status === 'completed')
-    .reduce((sum, p) => sum + p.amount, 0);
+  const totalRevenue = bookings.reduce((sum: number, b: Booking) => sum + (parseFloat(String(b.total_cost || 0))), 0);
+  const occupancyRate = totalRooms > 0 ? Math.round((totalRooms - availableRooms) / totalRooms * 100) : 0;
 
   const stats = [
-    {
-      title: 'Total Hotels',
-      value: totalHotels,
-      icon: Building2,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100',
-    },
-    {
-      title: 'Total Rooms',
-      value: totalRooms,
-      subtitle: `${availableRooms} available`,
-      icon: BedDouble,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      title: 'Active Bookings',
-      value: activeBookings,
-      subtitle: `${totalBookings} total`,
-      icon: Calendar,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-    {
-      title: 'Total Guests',
-      value: totalGuests,
-      icon: Users,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-    },
-    {
-      title: 'Total Revenue',
-      value: `₱${totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100',
-    },
-    {
-      title: 'Occupancy Rate',
-      value: `${Math.round((totalRooms - availableRooms) / totalRooms * 100)}%`,
-      icon: TrendingUp,
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-100',
-    },
+    { title: 'Total Hotels', value: totalHotels, icon: Building2, gradient: 'from-indigo-500 to-indigo-700', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+    { title: 'Total Rooms', value: totalRooms, subtitle: `${availableRooms} available`, icon: BedDouble, gradient: 'from-emerald-500 to-emerald-700', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    { title: 'Active Bookings', value: activeBookings, subtitle: `${totalBookings} total`, icon: Calendar, gradient: 'from-violet-500 to-violet-700', bg: 'bg-violet-50', text: 'text-violet-700' },
+    { title: 'Total Guests', value: totalGuests, icon: Users, gradient: 'from-amber-500 to-amber-700', bg: 'bg-amber-50', text: 'text-amber-700' },
+    { title: 'Revenue', value: `₱${totalRevenue.toLocaleString()}`, icon: DollarSign, gradient: 'from-emerald-500 to-teal-700', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    { title: 'Occupancy', value: `${occupancyRate}%`, icon: TrendingUp, gradient: 'from-rose-500 to-rose-700', bg: 'bg-rose-50', text: 'text-rose-700' },
   ];
 
-  // Recent bookings
   const recentBookings = [...bookings]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
+    .slice(0, 6);
+
+  const getStatusStyles = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300';
+      case 'checked-in': return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
+      case 'pending': return 'bg-amber-100 text-amber-700 ring-1 ring-amber-300';
+      case 'cancelled': return 'bg-red-100 text-red-700 ring-1 ring-red-300';
+      default: return 'bg-slate-100 text-slate-700 ring-1 ring-slate-300';
+    }
+  };
 
   return (
-    <div>
+    <div className="space-y-8">
       <style>{`
-        @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeInScale {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .animate-fade-in-down {
-          animation: fadeInDown 0.6s ease-out forwards;
-        }
-
-        .animate-fade-in-scale {
-          animation: fadeInScale 0.5s ease-out forwards;
-        }
-
-        .animate-fade-in-up {
-          animation: fadeInUp 0.6s ease-out forwards;
-        }
-
-        .animate-slide-in-left {
-          animation: slideInLeft 0.5s ease-out forwards;
-        }
-
-        .stat-card {
-          animation: fadeInScale 0.5s ease-out forwards;
-        }
-
-        .reservation-row {
-          animation: slideInLeft 0.4s ease-out forwards;
-        }
-
-        .stat-card {
-          border-top: 4px solid;
-          background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-        }
-
-        .stat-card:nth-child(1) {
-          border-top-color: #059669;
-        }
-
-        .stat-card:nth-child(2) {
-          border-top-color: #16a34a;
-        }
-
-        .stat-card:nth-child(3) {
-          border-top-color: #a855f7;
-        }
-
-        .stat-card:nth-child(4) {
-          border-top-color: #ea580c;
-        }
-
-        .stat-card:nth-child(5) {
-          border-top-color: #059669;
-        }
-
-        .stat-card:nth-child(6) {
-          border-top-color: #ec4899;
-        }
-
-        .stat-card:hover {
-          box-shadow: 0 20px 25px -5px rgba(5, 150, 105, 0.15), 0 10px 10px -5px rgba(5, 150, 105, 0.04) !important;
-        }
-
-        .stat-icon-box {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .stat-icon-box::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 30% 30%, rgba(255,255,255, 0.4), transparent);
-          pointer-events: none;
-        }
-
-        .reservation-card-header {
-          background: linear-gradient(135deg, #059669 0%, #047857 100%);
-          box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
       `}</style>
 
-      <div className="mb-8 animate-fade-in-down">
-        <h1 className="text-3xl font-bold text-gray-900">Performance Overview</h1>
-        <p className="text-gray-600 mt-2">Monitor your hotels and bookings in real-time</p>
+      {/* Header */}
+      <div className="fade-up">
+        <h1 className="text-3xl font-bold text-slate-900"> Performance Overview</h1>
+        <p className="text-slate-500 mt-1">Real-time metrics across all properties</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card 
-              key={index} 
-              className="stat-card border-gray-200 hover:shadow-2xl transition-all bg-white rounded-xl overflow-hidden"
-              style={{ animationDelay: `${index * 0.1}s` }}
+            <div
+              key={index}
+              className="fade-up group relative bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
+              style={{ animationDelay: `${index * 80}ms` }}
             >
-              <CardContent className="p-6 bg-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">{stat.title}</p>
-                    <p className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">{stat.value}</p>
-                    {stat.subtitle && (
-                      <p className="text-xs text-emerald-600 font-medium">{stat.subtitle}</p>
-                    )}
-                  </div>
-                  <div className={`stat-icon-box w-16 h-16 ${stat.bgColor} rounded-xl flex items-center justify-center shadow-md`}>
-                    <Icon className={`w-8 h-8 ${stat.color}`} />
-                  </div>
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04] -mr-8 -mt-8">
+                <Icon className="w-full h-full" />
+              </div>
+              <div className="flex items-start justify-between relative z-10">
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{stat.title}</p>
+                  <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                  {stat.subtitle && <p className="text-sm text-slate-500 mt-1">{stat.subtitle}</p>}
                 </div>
-              </CardContent>
-            </Card>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
+                  <Icon className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>
 
       {/* Recent Bookings */}
-      <Card className="border border-gray-200 bg-white animate-fade-in-up rounded-xl overflow-hidden shadow-lg">
-        <CardHeader className="reservation-card-header border-b-0 py-6">
-          <CardTitle className="text-white text-2xl">Latest Reservations</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 bg-white">
+      <div className="fade-up bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '500ms' }}>
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
           <div>
-            {recentBookings.map((booking, index) => {
-              const hotel = hotels.find(h => h.hotel_id === booking.hotel_id);
-              const guest = guests.find(g => g.guest_id === booking.guest_id);
-              return (
-                <div 
-                  key={booking.booking_id} 
-                  className="flex items-center justify-between p-5 hover:bg-emerald-50/50 transition-all bg-white border-b border-gray-100 reservation-row group"
-                  style={{ animationDelay: `${0.3 + index * 0.1}s` }}
-                >
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">{booking.booking_reference}</p>
-                    <p className="text-sm text-gray-600 mt-1.5 flex items-center gap-2">
-                      <span className="inline-block w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                      {guest?.first_name} {guest?.last_name} • {hotel?.name}
-                    </p>
+            <h2 className="text-lg font-bold text-slate-900">Latest Reservations</h2>
+            <p className="text-sm text-slate-400">{bookings.length} total bookings</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span className="text-slate-500">Live</span>
+          </div>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {recentBookings.map((booking, index) => {
+            const hotel = hotels.find((h: Hotel) => h.id === booking.hotel_id);
+            const guest = guests.find((g: Guest) => g.id === booking.guest_id);
+            return (
+              <div
+                key={booking.booking_id}
+                className="fade-up flex items-center justify-between px-6 py-4 hover:bg-slate-50/80 transition-colors group"
+                style={{ animationDelay: `${600 + index * 60}ms` }}
+              >
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                    {guest?.first_name?.charAt(0) || '?'}{guest?.last_name?.charAt(0) || ''}
                   </div>
-                  <div className="flex items-center gap-8 ml-4">
-                    <div className="text-right">
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Check-In</p>
-                      <p className="text-sm font-bold text-gray-900 mt-1">
-                        {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                    <div className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm ${
-                      booking.booking_status === 'confirmed' ? 'bg-green-100 text-green-800 ring-1 ring-green-300' :
-                      booking.booking_status === 'checked-in' ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300' :
-                      booking.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-300' :
-                      'bg-gray-100 text-gray-800 ring-1 ring-gray-300'
-                    }`}>
-                      {booking.booking_status.toUpperCase()}
-                    </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 truncate">{guest?.first_name} {guest?.last_name}</p>
+                    <p className="text-sm text-slate-400 truncate">{booking.booking_reference} • {hotel?.name}</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                <div className="flex items-center gap-6 flex-shrink-0 ml-4">
+                  <div className="text-right hidden md:block">
+                    <p className="text-xs text-slate-400">Check-in</p>
+                    <p className="text-sm font-medium text-slate-700">
+                      {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="text-right hidden md:block">
+                    <p className="text-xs text-slate-400">Total</p>
+                    <p className="text-sm font-bold text-slate-900">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusStyles(booking.booking_status)}`}>
+                    {booking.booking_status.replace('-', ' ').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          {recentBookings.length === 0 && (
+            <div className="px-6 py-12 text-center text-slate-400">
+              <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No bookings yet</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-

@@ -1,232 +1,166 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { MapPin, Calendar, CreditCard, AlertCircle, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { bookings, hotels, bookingRooms, rooms, payments } from '../../data/mockData';
-import { toast } from 'sonner';
+import { useBooking } from '../../context/BookingContext';
+import { Calendar, MapPin, Clock, Search, BedDouble, CreditCard } from 'lucide-react';
 
 export function ClientBookings() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const userBookings = bookings.filter(b => b.guest_id === user?.id);
-  
-  const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const { bookings: contextBookings, hotels } = useBooking();
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'all'>('all');
 
-  const getStatusColor = (status: string) => {
+  const userBookings = contextBookings.filter(b => b.guest_id === user?.id);
+
+  const filteredBookings = userBookings.filter(b => {
+    if (activeTab === 'upcoming') return ['confirmed', 'pending', 'checked-in'].includes(b.booking_status);
+    if (activeTab === 'past') return ['checked-out', 'cancelled'].includes(b.booking_status);
+    return true;
+  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const getStatusStyles = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-200 text-green-800 font-semibold';
-      case 'checked-in': return 'bg-blue-200 text-blue-800 font-semibold';
-      case 'checked-out': return 'bg-gray-200 text-gray-800 font-semibold';
-      case 'pending': return 'bg-yellow-200 text-yellow-800 font-semibold';
-      case 'cancelled': return 'bg-red-200 text-red-800 font-semibold';
-      default: return 'bg-gray-200 text-gray-800 font-semibold';
+      case 'confirmed': return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Confirmed' };
+      case 'checked-in': return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Checked In' };
+      case 'pending': return { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pending' };
+      case 'checked-out': return { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Completed' };
+      case 'cancelled': return { bg: 'bg-red-100', text: 'text-red-700', label: 'Cancelled' };
+      default: return { bg: 'bg-slate-100', text: 'text-slate-600', label: status };
     }
   };
 
-  const handleModifyBooking = (bookingId: number) => {
-    setIsModifyDialogOpen(true);
-  };
-
-  const handleCancelBooking = (bookingId: number) => {
-    setIsCancelDialogOpen(true);
-  };
-
-  const confirmCancelBooking = () => {
-    toast.success('Booking cancelled successfully');
-    setIsCancelDialogOpen(false);
-  };
-
-  const handleDownloadInvoice = (bookingId: number, bookingRef: string) => {
-    // Simple invoice generation - in real app would generate PDF
-    const invoiceContent = `Invoice for Booking ${bookingRef}\nDate: ${new Date().toLocaleDateString()}\nBooking ID: ${bookingId}`;
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(invoiceContent));
-    element.setAttribute('download', `Invoice_${bookingRef}.txt`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success('Invoice downloaded successfully');
-  };
-
-  const handleSearchHotels = () => {
-    navigate('/client/search');
+  const getNights = (checkin: string, checkout: string) => {
+    const diff = new Date(checkout).getTime() - new Date(checkin).getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black">My Bookings</h1>
-        <p className="text-gray-700 mt-1">View and manage your reservations</p>
+    <div className="min-h-[80vh]">
+      <style>{`
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
+      `}</style>
+
+      {/* Header */}
+      <div className="fade-up mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">My Bookings</h1>
+        <p className="text-slate-500 mt-1">{userBookings.length} total {userBookings.length === 1 ? 'booking' : 'bookings'}</p>
       </div>
 
-      {userBookings.length === 0 ? (
-        <Card className="border-2 border-gray-300 !bg-white shadow-md">
-          <CardContent className="p-12 text-center !bg-white">
-            <Calendar className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-            <p className="text-gray-800 mb-4 font-medium">You don't have any bookings yet</p>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800" onClick={handleSearchHotels}>Search Hotels</Button>
-          </CardContent>
-        </Card>
+      {/* Tabs */}
+      <div className="fade-up flex gap-2 mb-6 bg-slate-100 p-1 rounded-xl w-fit" style={{ animationDelay: '100ms' }}>
+        {(['all', 'upcoming', 'past'] as const).map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'upcoming' && userBookings.filter(b => ['confirmed', 'pending', 'checked-in'].includes(b.booking_status)).length > 0 && (
+              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-bold">
+                {userBookings.filter(b => ['confirmed', 'pending', 'checked-in'].includes(b.booking_status)).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Bookings Grid */}
+      {filteredBookings.length === 0 ? (
+        <div className="fade-up bg-white rounded-2xl border border-slate-200 px-6 py-16 text-center" style={{ animationDelay: '200ms' }}>
+          <Calendar className="w-14 h-14 mx-auto mb-4 text-slate-200" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
+            {activeTab === 'upcoming' ? 'No upcoming stays' : activeTab === 'past' ? 'No past stays' : 'No bookings yet'}
+          </h2>
+          <p className="text-slate-400 mb-6 text-sm">
+            {activeTab === 'upcoming' ? 'Your next adventure awaits!' : 'Start exploring hotels and make your first reservation'}
+          </p>
+          <button onClick={() => navigate('/client/search')}
+            className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl transition-all">
+            <Search className="w-4 h-4" /> Browse Hotels
+          </button>
+        </div>
       ) : (
-        <div className="space-y-6">
-          {userBookings.map((booking) => {
-            const hotel = hotels.find(h => h.hotel_id === booking.hotel_id);
-            const bookingRoom = bookingRooms.find(br => br.booking_id === booking.booking_id);
-            const room = rooms.find(r => r.room_id === bookingRoom?.room_id);
-            const payment = payments.find(p => p.booking_id === booking.booking_id);
+        <div className="space-y-4">
+          {filteredBookings.map((booking, index) => {
+            const hotel = booking.hotel || hotels.find(h => h.id === booking.hotel_id);
+            const status = getStatusStyles(booking.booking_status);
+            const nights = getNights(booking.checkin_date, booking.checkout_date);
+            const bookingRooms = booking.booking_rooms || [];
 
             return (
-              <Card key={booking.booking_id} className="border-2 border-cyan-500 !bg-white shadow-md hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 !bg-white">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold text-black">{hotel?.name}</h3>
-                        <Badge className={getStatusColor(booking.booking_status)}>
-                          {booking.booking_status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-800">
-                        <MapPin className="w-4 h-4" />
-                        {hotel?.address}, {hotel?.city}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-700 font-medium">Booking Reference</p>
-                      <p className="text-lg font-bold text-black">{booking.booking_reference}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-6 mb-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-700 font-semibold">Check-in</p>
-                        <p className="font-bold text-black">{new Date(booking.checkin_date).toLocaleDateString()}</p>
-                        <p className="text-xs text-gray-600">After 3:00 PM</p>
+              <div key={booking.booking_id} className="fade-up bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
+                style={{ animationDelay: `${200 + index * 80}ms` }}>
+                {/* Top accent bar */}
+                <div className={`h-1 ${booking.booking_status === 'confirmed' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : booking.booking_status === 'checked-in' ? 'bg-gradient-to-r from-blue-400 to-indigo-500' : booking.booking_status === 'pending' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-slate-200'}`}></div>
+                
+                <div className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-6 h-6 text-teal-400" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-700 font-semibold">Check-out</p>
-                        <p className="font-bold text-black">{new Date(booking.checkout_date).toLocaleDateString()}</p>
-                        <p className="text-xs text-gray-600">Before 11:00 AM</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-700 font-semibold mb-2">Room Details</p>
-                      <div className="space-y-1">
-                        <p className="font-bold text-black">Room {room?.room_number}</p>
-                        <p className="text-sm text-gray-800">
-                          {bookingRoom?.adults_count} Adults, {bookingRoom?.children_count} Children
-                        </p>
-                        <p className="text-sm text-gray-800">
-                          ${bookingRoom?.rate} per night
-                        </p>
-                      </div>
-                    </div>
-
-                    {payment && (
-                      <div>
-                        <p className="text-sm text-gray-700 font-semibold mb-2">Payment</p>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <CreditCard className="w-4 h-4" />
-                            <p className="text-sm text-gray-800">{payment.payment_method}</p>
+                        <h3 className="text-lg font-bold text-slate-900">{hotel?.name || 'Hotel'}</h3>
+                        <p className="text-sm text-slate-400">{hotel?.city} • {hotel?.address}</p>
+                        
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm text-slate-600">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(booking.checkout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </div>
-                          <p className="text-xl font-bold text-emerald-600">
-                            ${payment.amount}
-                          </p>
-                          <Badge className={getStatusColor(payment.status)}>
-                            {payment.status}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            {nights} {nights === 1 ? 'night' : 'nights'}
+                          </div>
+                          {bookingRooms.length > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <BedDouble className="w-3.5 h-3.5 text-slate-400" />
+                              {bookingRooms.length} {bookingRooms.length === 1 ? 'room' : 'rooms'}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    )}
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.bg} ${status.text}`}>
+                        {status.label}
+                      </span>
+                      <span className="text-xs font-mono text-slate-400">{booking.booking_reference}</span>
+                      {booking.total_cost && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-lg font-bold text-slate-900">₱{Number(booking.total_cost).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {booking.notes && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-sm text-gray-800 font-medium">Notes: {booking.notes}</p>
+                  {/* Room details */}
+                  {bookingRooms.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <div className="flex flex-wrap gap-2">
+                        {bookingRooms.map((br: any, i: number) => (
+                          <span key={i} className="px-3 py-1.5 rounded-lg bg-slate-50 text-sm text-slate-600 border border-slate-100">
+                            Room {br.room?.room_number || br.room_id} • {br.adults_count} {br.adults_count === 1 ? 'adult' : 'adults'}
+                            {br.children_count > 0 && `, ${br.children_count} ${br.children_count === 1 ? 'child' : 'children'}`}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  <div className="flex gap-2 justify-end">
-                    {booking.booking_status === 'confirmed' && (
-                      <>
-                        <Button variant="outline" className="border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50" onClick={() => handleModifyBooking(booking.booking_id)}>Modify Booking</Button>
-                        <Button variant="outline" className="border-2 border-red-500 text-red-600 hover:bg-red-50" onClick={() => handleCancelBooking(booking.booking_id)}>
-                          Cancel Booking
-                        </Button>
-                      </>
-                    )}
-                    <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 flex items-center gap-2" onClick={() => handleDownloadInvoice(booking.booking_id, booking.booking_reference)}>
-                      <Download className="w-4 h-4" />
-                      Download Invoice
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  {/* Payment info */}
+                  {booking.payments && booking.payments.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                      <CreditCard className="w-3 h-3" />
+                      Paid via {booking.payments[0].payment_method} • {booking.payments[0].status}
+                    </div>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
       )}
-
-      {/* Modify Booking Dialog */}
-      <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
-        <DialogContent className="!bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-black">Modify Booking</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-gray-800">Booking modifications are available for confirmed bookings. Please select your new dates:</p>
-            <div className="grid gap-4">
-              <div>
-                <label className="text-sm font-semibold text-gray-900">New Check-in Date</label>
-                <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black" />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-900">New Check-out Date</label>
-                <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black" />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModifyDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800" onClick={() => {
-              toast.success('Booking modified successfully');
-              setIsModifyDialogOpen(false);
-            }}>Update Booking</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Cancel Booking Confirmation Dialog */}
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-        <DialogContent className="!bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-black flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              Cancel Booking
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-gray-800">Are you sure you want to cancel this booking? This action cannot be undone.</p>
-            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <p className="text-sm text-red-800 font-medium">You may be eligible for a refund based on the cancellation policy.</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>Keep Booking</Button>
-            <Button className="bg-red-600 text-white hover:bg-red-700" onClick={confirmCancelBooking}>Cancel Booking</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-

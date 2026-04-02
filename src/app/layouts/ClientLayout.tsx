@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
+import { BookingProvider } from '../context/BookingContext';
 import { 
   Search,
   Calendar,
@@ -63,7 +64,7 @@ export function ClientLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/client/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                 <Hotel className="w-5 h-5 text-white" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Inntera</span>
@@ -92,7 +93,7 @@ export function ClientLayout() {
               <div className="border-l border-gray-200 pl-4 ml-4 flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-900">{user.name}</span>
                 <Button
-                  className="bg-red-500 hover:bg-red-600 text-white text-sm py-1.5 px-3 rounded-md"
+                  className="bg-black hover:bg-zinc-800 text-white text-sm py-1.5 px-3 rounded-md"
                   onClick={handleLogout}
                 >
                   <LogOut className="w-4 h-4 mr-1" />
@@ -106,7 +107,9 @@ export function ClientLayout() {
 
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Outlet />
+        <BookingProvider>
+          <Outlet />
+        </BookingProvider>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -7,17 +7,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit } from 'lucide-react';
-import { rooms, Room, hotels, roomTypes } from '../../data/mockData';
+import { Plus, Edit, Loader2 } from 'lucide-react';
+import { useBooking } from '../../context/BookingContext';
+import { Room } from '../../types';
 import { toast } from 'sonner';
 
 export function AdminRooms() {
+  const { rooms, hotels, roomTypes, isLoading } = useBooking();
   const [roomList, setRoomList] = useState<Room[]>(rooms);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [formData, setFormData] = useState<Partial<Room>>({});
   const [filterHotel, setFilterHotel] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  useEffect(() => {
+    setRoomList(rooms);
+  }, [rooms]);
+
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center text-emerald-600">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold animate-pulse uppercase tracking-widest text-xs">Inventorying Room Availability...</p>
+      </div>
+    );
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,12 +142,12 @@ export function AdminRooms() {
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select hotel">
-                      {formData.hotel_id ? hotels.find(h => h.hotel_id === formData.hotel_id)?.name : 'Select hotel'}
+                      {formData.hotel_id ? hotels.find(h => h.id === formData.hotel_id)?.name : 'Select hotel'}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {hotels.map(hotel => (
-                      <SelectItem key={hotel.hotel_id} value={hotel.hotel_id.toString()}>
+                      <SelectItem key={hotel.id} value={hotel.id.toString()}>
                         {hotel.name}
                       </SelectItem>
                     ))}
@@ -222,7 +237,7 @@ export function AdminRooms() {
                 <SelectContent>
                   <SelectItem value="all">All Hotels</SelectItem>
                   {hotels.map(hotel => (
-                    <SelectItem key={hotel.hotel_id} value={hotel.hotel_id.toString()}>
+                    <SelectItem key={hotel.id} value={hotel.id.toString()}>
                       {hotel.name}
                     </SelectItem>
                   ))}
@@ -257,13 +272,14 @@ export function AdminRooms() {
                 <TableHead>Hotel</TableHead>
                 <TableHead>Room Type</TableHead>
                 <TableHead>Floor</TableHead>
+                <TableHead>Bed Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRooms.map((room) => {
-                const hotel = hotels.find(h => h.hotel_id === room.hotel_id);
+                const hotel = hotels.find(h => h.id === room.hotel_id);
                 const roomType = roomTypes.find(rt => rt.room_type_id === room.room_type_id);
                 return (
                   <TableRow key={room.room_id}>
@@ -271,6 +287,11 @@ export function AdminRooms() {
                     <TableCell>{hotel?.name}</TableCell>
                     <TableCell>{roomType?.name}</TableCell>
                     <TableCell>{room.floor}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-slate-50 text-slate-600 font-bold border-slate-200">
+                        {roomType?.bed_type || 'N/A'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(room.status)}>
                         {room.status}

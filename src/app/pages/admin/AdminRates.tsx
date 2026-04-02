@@ -1,61 +1,90 @@
-import { Card, CardContent } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { rates, hotels, roomTypes } from '../../data/mockData';
+import { Loader2, DollarSign } from 'lucide-react';
+import { useBooking } from '../../context/BookingContext';
 
 export function AdminRates() {
+  const { roomTypes, hotels, isLoading } = useBooking();
+
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-600 mb-4" />
+        <p className="text-sm font-semibold text-slate-400 tracking-widest uppercase animate-pulse">Loading Rates...</p>
+      </div>
+    );
+  }
+
+  // Group room types by hotel
+  const hotelGroups = hotels.map(hotel => ({
+    hotel,
+    types: roomTypes.filter(rt => rt.hotel_id === hotel.id),
+  })).filter(g => g.types.length > 0);
+
   return (
-    <div className="p-8">
+    <div className="space-y-6">
       <style>{`
-        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in-down { animation: fadeInDown 0.6s ease-out forwards; }
-        .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
-        .table-card { background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); }
-        .table-row { transition: all 0.3s ease; }
-        .table-row:hover { background-color: #f0fdf4; }
-        thead { background-color: #f3f4f6; }
-        thead th { font-weight: 700; color: #374151; padding: 14px; }
-        tbody td { color: #374151; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
       `}</style>
-      
-      <div className="mb-8 animate-fade-in-down">
-        <h1 className="text-3xl font-bold text-gray-900">Rates Management</h1>
-        <p className="text-gray-500 mt-1">Manage room rates and pricing</p>
+
+      <div className="fade-up flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Rates & Pricing</h1>
+          <p className="text-slate-500 mt-1">Room type pricing across all properties</p>
+        </div>
+        <div className="px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 text-sm font-bold flex items-center gap-2">
+          <DollarSign className="w-4 h-4" />
+          {roomTypes.length} Room Types
+        </div>
       </div>
 
-      <Card className="table-card border border-gray-200 animate-fade-in-up rounded-xl overflow-hidden shadow-lg">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Hotel</TableHead>
-                <TableHead>Room Type</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Currency</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rates.map((rate) => {
-                const hotel = hotels.find(h => h.hotel_id === rate.hotel_id);
-                const roomType = roomTypes.find(rt => rt.room_type_id === rate.room_type_id);
-                return (
-                  <TableRow key={rate.rate_id}>
-                    <TableCell className="font-medium">{hotel?.name}</TableCell>
-                    <TableCell>{roomType?.name}</TableCell>
-                    <TableCell>{new Date(rate.start_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(rate.end_date).toLocaleDateString()}</TableCell>
-                    <TableCell className="font-medium">₱{rate.price.toLocaleString()}</TableCell>
-                    <TableCell>{rate.currency}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {hotelGroups.map(({ hotel, types }, index) => (
+          <div key={hotel.id} className="fade-up bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: `${index * 100}ms` }}>
+            <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-slate-900">{hotel.name}</h2>
+                <p className="text-sm text-slate-400">{hotel.city} • {types.length} room types</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Room Type</th>
+                    <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Bed Type</th>
+                    <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Max Occupancy</th>
+                    <th className="text-right px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Base Price</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {types.map(rt => (
+                    <tr key={rt.room_type_id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-3.5">
+                        <p className="font-semibold text-slate-900">{rt.name}</p>
+                        {rt.description && <p className="text-xs text-slate-400 mt-0.5 max-w-xs truncate">{rt.description}</p>}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">{rt.bed_type || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-3.5 text-sm text-slate-600">{rt.max_occupancy} guests</td>
+                      <td className="px-6 py-3.5 text-right">
+                        <span className="text-lg font-bold text-slate-900">₱{Number(rt.base_price).toLocaleString()}</span>
+                        <span className="text-xs text-slate-400 ml-1">/night</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+        {hotelGroups.length === 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 px-6 py-16 text-center text-slate-400">
+            <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No room types found</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

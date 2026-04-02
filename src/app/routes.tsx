@@ -4,10 +4,13 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { StaffLayout } from './layouts/StaffLayout';
 import { ClientLayout } from './layouts/ClientLayout';
 
+import { BookingProvider } from './context/BookingContext';
+
 // Public pages
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { HomePage } from './pages/HomePage';
+import { ErrorPage } from './pages/ErrorPage';
 
 // Admin pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -23,19 +26,22 @@ import { StaffDashboard } from './pages/staff/StaffDashboard';
 import { StaffBookings } from './pages/staff/StaffBookings';
 import { StaffRooms } from './pages/staff/StaffRooms';
 import { StaffCheckin } from './pages/staff/StaffCheckin';
+import { StaffCleaning } from './pages/staff/StaffCleaning';
 
 // Client pages
 import { ClientDashboard } from './pages/client/ClientDashboard';
 import { ClientSearch } from './pages/client/ClientSearch';
 import { ClientBookings } from './pages/client/ClientBookings';
 import { ClientHotelDetail } from './pages/client/ClientHotelDetail';
+import { ClientReservationPage } from './pages/client/ClientReservationPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     Component: RootLayout,
+    errorElement: <ErrorPage />,
     children: [
-      { index: true, Component: HomePage },
+      { index: true, element: <BookingProvider><HomePage /></BookingProvider> },
       { path: 'login', Component: LoginPage },
       { path: 'signup', Component: SignUpPage },
       
@@ -65,6 +71,7 @@ export const router = createBrowserRouter([
           { path: 'bookings', Component: StaffBookings },
           { path: 'rooms', Component: StaffRooms },
           { path: 'checkin', Component: StaffCheckin },
+          { path: 'cleaning', Component: StaffCleaning },
         ],
       },
 
@@ -78,6 +85,7 @@ export const router = createBrowserRouter([
           { path: 'search', Component: ClientSearch },
           { path: 'bookings', Component: ClientBookings },
           { path: 'hotel/:hotelId', Component: ClientHotelDetail },
+          { path: 'reserve/:hotelId/:roomTypeId', Component: ClientReservationPage },
         ],
       },
 

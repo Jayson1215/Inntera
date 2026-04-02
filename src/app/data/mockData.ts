@@ -1,7 +1,8 @@
 // Mock data based on the ERD schema
 
 export interface Hotel {
-  hotel_id: number;
+  id: number;
+  display_id: string;
   name: string;
   address: string;
   city: string;
@@ -12,7 +13,7 @@ export interface Hotel {
 }
 
 export interface Manager {
-  manager_id: number;
+  id: number;
   hotel_id: number;
   first_name: string;
   last_name: string;
@@ -23,7 +24,8 @@ export interface Manager {
 }
 
 export interface Staff {
-  staff_id: number;
+  id: number;
+  display_id: string;
   hotel_id: number;
   name: string;
   role: string;
@@ -38,6 +40,7 @@ export interface RoomType {
   description: string;
   max_occupancy: number;
   base_price: number;
+  bed_type: 'Single' | 'Double';
   amenities_summary: string;
   image?: string;
 }
@@ -60,8 +63,9 @@ export interface Room {
   room_type_id: number;
   room_number: string;
   floor: string;
-  status: 'available' | 'occupied' | 'maintenance' | 'reserved';
+  status: 'available' | 'occupied' | 'maintenance' | 'out_of_order';
   notes: string;
+  created_at?: string;
 }
 
 export interface Rate {
@@ -75,7 +79,8 @@ export interface Rate {
 }
 
 export interface Guest {
-  guest_id: number;
+  id: number;
+  display_id: string;
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -97,6 +102,7 @@ export interface Booking {
   booking_status: 'pending' | 'confirmed' | 'checked-in' | 'checked-out' | 'cancelled';
   created_at: string;
   modified_at: string;
+  total_cost?: number | string;
   notes: string;
 }
 
@@ -135,37 +141,110 @@ export interface Payment {
 // Mock Data
 export const hotels: Hotel[] = [
   {
-    hotel_id: 1,
-    name: "Grand Plaza Hotel",
-    address: "123 Main Street",
-    city: "New York",
-    phone: "+1 (212) 555-0100",
-    timezone: "America/New_York",
-    created_at: "2024-01-01T00:00:00Z",
+    id: 1,
+    display_id: "HTL-001",
+    name: "Watergate Boutique Hotel",
+    address: "Jose Rosales Ave, Doongan",
+    city: "Butuan City",
+    phone: "+63 85 815 0088",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
   },
   {
-    hotel_id: 2,
-    name: "Seaside Resort & Spa",
-    address: "456 Ocean Drive",
-    city: "Miami",
-    phone: "+1 (305) 555-0200",
-    timezone: "America/New_York",
-    created_at: "2024-01-15T00:00:00Z",
+    id: 2,
+    display_id: "HTL-002",
+    name: "Almont Inland Resort",
+    address: "J.C. Aquino Ave",
+    city: "Butuan City",
+    phone: "+63 85 342 7414",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
   },
   {
-    hotel_id: 3,
-    name: "Mountain View Lodge",
-    address: "789 Alpine Way",
-    city: "Denver",
-    phone: "+1 (303) 555-0300",
-    timezone: "America/Denver",
-    created_at: "2024-02-01T00:00:00Z",
+    id: 3,
+    display_id: "HTL-003",
+    name: "Butuan Grand Palace Hotel",
+    address: "J.P. Rizal St",
+    city: "Butuan City",
+    phone: "+63 85 342 0800",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 4,
+    display_id: "HTL-004",
+    name: "Go Hotels Butuan",
+    address: "J.C. Aquino Ave, Brgy. Libertad",
+    city: "Butuan City",
+    phone: "+63 922 464 6835",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 5,
+    display_id: "HTL-005",
+    name: "Amarah Hotel",
+    address: "Jose Rosales Ave, Doongan",
+    city: "Butuan City",
+    phone: "+63 85 817 9999",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 6,
+    display_id: "HTL-006",
+    name: "Almont City Hotel",
+    address: "San Jose St",
+    city: "Butuan City",
+    phone: "+63 85 342 5263",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 7,
+    display_id: "HTL-007",
+    name: "Hotel Oazis Butuan",
+    address: "J.C. Aquino Ave",
+    city: "Butuan City",
+    phone: "+63 85 342 8888",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 8,
+    display_id: "HTL-008",
+    name: "Big Daddy Hotel and Convention Center",
+    address: "Imadejas",
+    city: "Butuan City",
+    phone: "+63 85 341 5111",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 9,
+    display_id: "HTL-009",
+    name: "Embassy Hotel",
+    address: "Montilla Blvd",
+    city: "Butuan City",
+    phone: "+63 85 342 2222",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
+  },
+  {
+    id: 10,
+    display_id: "HTL-010",
+    name: "The Red Palm Suites and Restaurant",
+    address: "Villa Kananga",
+    city: "Butuan City",
+    phone: "+63 85 341 8888",
+    timezone: "Asia/Manila",
+    created_at: "2024-03-31T00:00:00Z",
   },
 ];
 
 export const managers: Manager[] = [
   {
-    manager_id: 1,
+    id: 1,
     hotel_id: 1,
     first_name: "John",
     last_name: "Smith",
@@ -175,7 +254,7 @@ export const managers: Manager[] = [
     hired_at: "2024-01-01T00:00:00Z",
   },
   {
-    manager_id: 2,
+    id: 2,
     hotel_id: 2,
     first_name: "Sarah",
     last_name: "Johnson",
@@ -188,7 +267,8 @@ export const managers: Manager[] = [
 
 export const staff: Staff[] = [
   {
-    staff_id: 1,
+    id: 1,
+    display_id: "STF-0001",
     hotel_id: 1,
     name: "Mike Davis",
     role: "Front Desk",
@@ -196,7 +276,8 @@ export const staff: Staff[] = [
     phone: "+1 (212) 555-0102",
   },
   {
-    staff_id: 2,
+    id: 2,
+    display_id: "STF-0002",
     hotel_id: 1,
     name: "Emily Wilson",
     role: "Housekeeping",
@@ -204,60 +285,125 @@ export const staff: Staff[] = [
     phone: "+1 (212) 555-0103",
   },
   {
-    staff_id: 3,
+    id: 3,
+    display_id: "STF-0003",
     hotel_id: 2,
     name: "Robert Brown",
     role: "Concierge",
     email: "robert.brown@seaside.com",
     phone: "+1 (305) 555-0202",
   },
+  {
+    id: 4,
+    display_id: "STF-0004",
+    hotel_id: 4,
+    name: "Mike Davis",
+    role: "Manager",
+    email: "mike.davis@watergate.com",
+    phone: "+63 (85) 815 1515",
+  },
 ];
 
 export const roomTypes: RoomType[] = [
   {
     room_type_id: 1,
-    hotel_id: 1,
-    name: "Deluxe King",
-    description: "Spacious room with king-size bed, city views, and premium amenities",
-    max_occupancy: 2,
-    base_price: 16500,
-    amenities_summary: "King bed, City view, WiFi, Mini bar, Coffee maker",
+    hotel_id: 4,
+    name: "Standard Single Room",
+    description: "Compact and cozy Standard Room with a comfortable single bed.",
+    max_occupancy: 1,
+    base_price: 2000,
+    bed_type: "Single",
+    amenities_summary: "WiFi, Smart TV, AC, Hot Shower, Single Bed",
   },
   {
     room_type_id: 2,
-    hotel_id: 1,
-    name: "Executive Suite",
-    description: "Luxurious suite with separate living area, premium furnishings",
-    max_occupancy: 4,
-    base_price: 33000,
-    amenities_summary: "King bed, Living room, City view, WiFi, Mini bar, Jacuzzi",
+    hotel_id: 4,
+    name: "Standard Double Room",
+    description: "Comfortable Standard Room with a spacious double bed.",
+    max_occupancy: 2,
+    base_price: 2800,
+    bed_type: "Double",
+    amenities_summary: "WiFi, Smart TV, AC, Hot Shower, Double Bed",
   },
   {
     room_type_id: 3,
-    hotel_id: 2,
-    name: "Ocean View Room",
-    description: "Beautiful room with direct ocean views and balcony",
-    max_occupancy: 2,
-    base_price: 19250,
-    amenities_summary: "Queen bed, Ocean view, Balcony, WiFi, Mini bar",
+    hotel_id: 4,
+    name: "Deluxe Single Room",
+    description: "Enhanced comfort with premium amenities and a single bed.",
+    max_occupancy: 1,
+    base_price: 4000,
+    bed_type: "Single",
+    amenities_summary: "WiFi, Smart TV, AC, Mini Bar, Single Bed, City View",
   },
   {
     room_type_id: 4,
-    hotel_id: 2,
-    name: "Beachfront Villa",
-    description: "Private villa with direct beach access and luxury amenities",
-    max_occupancy: 6,
-    base_price: 49500,
-    amenities_summary: "2 Bedrooms, Private pool, Beach access, Full kitchen",
+    hotel_id: 4,
+    name: "Deluxe Double Room",
+    description: "Spacious Deluxe Room with premium views and a double bed.",
+    max_occupancy: 2,
+    base_price: 5200,
+    bed_type: "Double",
+    amenities_summary: "WiFi, Smart TV, AC, Mini Bar, Double Bed, Panoramic View",
   },
   {
     room_type_id: 5,
-    hotel_id: 3,
-    name: "Mountain Cabin",
-    description: "Cozy cabin with mountain views and fireplace",
+    hotel_id: 4,
+    name: "Executive Suite",
+    description: "Luxurious space with a separate living area and a king-sized double bed.",
+    max_occupancy: 3,
+    base_price: 12000,
+    bed_type: "Double",
+    amenities_summary: "WiFi, Smart TV, AC, Living Area, King Bed, Workspace, Spa Access",
+  },
+  {
+    room_type_id: 6,
+    hotel_id: 4,
+    name: "Presidential Suite",
+    description: "The ultimate luxury experience with butler service and a double bed.",
     max_occupancy: 4,
-    base_price: 13750,
-    amenities_summary: "Queen bed, Fireplace, Mountain view, WiFi, Kitchenette",
+    base_price: 35000,
+    bed_type: "Double",
+    amenities_summary: "WiFi, Full Kitchen, Private Terrace, Jacuzzi, Butler Service, King Bed",
+  },
+  {
+    room_type_id: 7,
+    hotel_id: 5,
+    name: "Standard Single",
+    description: "Basic comfort in the heart of the resort with a single bed.",
+    max_occupancy: 1,
+    base_price: 2200,
+    bed_type: "Single",
+    amenities_summary: "WiFi, Smart TV, AC, Hot Shower, Single Bed",
+  },
+  {
+    room_type_id: 8,
+    hotel_id: 5,
+    name: "Standard Double",
+    description: "Resort comfort with a spacious double bed.",
+    max_occupancy: 2,
+    base_price: 3000,
+    bed_type: "Double",
+    amenities_summary: "WiFi, Smart TV, AC, Hot Shower, Double Bed",
+  },
+  {
+    room_type_id: 9,
+    hotel_id: 5,
+    name: "Deluxe Double",
+    description: "Spacious deluxe room with pool views and double bed.",
+    max_occupancy: 2,
+    base_price: 5500,
+    bed_type: "Double",
+    amenities_summary: "Pool View, WiFi, Smart TV, AC, Double Bed",
+  },
+  {
+    room_type_id: 10,
+    hotel_id: 5,
+    name: "Inland Presidential",
+    description: "Exclusive resort living with private pool access and concierge.",
+    max_occupancy: 5,
+    base_price: 45000,
+    bed_type: "Double",
+    amenities_summary: "Private Pool, WiFi, Smart TV, AC, Chef Service, King Beds",
   },
 ];
 
@@ -286,16 +432,21 @@ export const roomAmenities: RoomAmenity[] = [
 ];
 
 export const rooms: Room[] = [
-  { room_id: 1, hotel_id: 1, room_type_id: 1, room_number: "101", floor: "1", status: "available", notes: "" },
-  { room_id: 2, hotel_id: 1, room_type_id: 1, room_number: "102", floor: "1", status: "occupied", notes: "" },
-  { room_id: 3, hotel_id: 1, room_type_id: 1, room_number: "103", floor: "1", status: "available", notes: "" },
-  { room_id: 4, hotel_id: 1, room_type_id: 2, room_number: "201", floor: "2", status: "available", notes: "" },
-  { room_id: 5, hotel_id: 1, room_type_id: 2, room_number: "202", floor: "2", status: "maintenance", notes: "AC repair scheduled" },
-  { room_id: 6, hotel_id: 2, room_type_id: 3, room_number: "301", floor: "3", status: "available", notes: "" },
-  { room_id: 7, hotel_id: 2, room_type_id: 3, room_number: "302", floor: "3", status: "available", notes: "" },
-  { room_id: 8, hotel_id: 2, room_type_id: 4, room_number: "Villa-1", floor: "Ground", status: "occupied", notes: "" },
-  { room_id: 9, hotel_id: 3, room_type_id: 5, room_number: "C-1", floor: "1", status: "available", notes: "" },
-  { room_id: 10, hotel_id: 3, room_type_id: 5, room_number: "C-2", floor: "1", status: "available", notes: "" },
+  { room_id: 1, hotel_id: 1, room_type_id: 1, room_number: "701", floor: "7", status: "available", notes: "Executive floor" },
+  { room_id: 2, hotel_id: 1, room_type_id: 1, room_number: "702", floor: "7", status: "occupied", notes: "" },
+  { room_id: 3, hotel_id: 1, room_type_id: 1, room_number: "703", floor: "7", status: "available", notes: "" },
+  { room_id: 4, hotel_id: 1, room_type_id: 2, room_number: "1001", floor: "10", status: "available", notes: "Penthouse" },
+  { room_id: 5, hotel_id: 1, room_type_id: 2, room_number: "1002", floor: "10", status: "maintenance", notes: "AC repair scheduled" },
+  { room_id: 6, hotel_id: 2, room_type_id: 3, room_number: "401", floor: "4", status: "available", notes: "Deluxe Ocean View" },
+  { room_id: 7, hotel_id: 2, room_type_id: 3, room_number: "402", floor: "4", status: "available", notes: "" },
+  { room_id: 8, hotel_id: 2, room_type_id: 4, room_number: "1001-V", floor: "10", status: "occupied", notes: "Presidential Villa" },
+  { room_id: 11, hotel_id: 4, room_type_id: 6, room_number: "201", floor: "2", status: "available", notes: "Standard Floor" },
+  { room_id: 12, hotel_id: 4, room_type_id: 6, room_number: "202", floor: "2", status: "occupied", notes: "" },
+  { room_id: 13, hotel_id: 4, room_type_id: 7, room_number: "401", floor: "4", status: "available", notes: "Deluxe Floor" },
+  { room_id: 14, hotel_id: 4, room_type_id: 8, room_number: "701", floor: "7", status: "available", notes: "Executive Floor" },
+  { room_id: 15, hotel_id: 4, room_type_id: 9, room_number: "1001", floor: "10", status: "available", notes: "Presidential Floor" },
+  { room_id: 16, hotel_id: 5, room_type_id: 10, room_number: "201", floor: "2", status: "available", notes: "Standard Floor" },
+  { room_id: 17, hotel_id: 5, room_type_id: 11, room_number: "1001", floor: "10", status: "available", notes: "Presidential Suite" },
 ];
 
 export const rates: Rate[] = [
@@ -308,7 +459,8 @@ export const rates: Rate[] = [
 
 export const guests: Guest[] = [
   {
-    guest_id: 1,
+    id: 1,
+    display_id: "GUEST-1001",
     first_name: "Alice",
     last_name: "Cooper",
     email: "alice@example.com",
@@ -319,7 +471,8 @@ export const guests: Guest[] = [
     password: "password123",
   },
   {
-    guest_id: 2,
+    id: 2,
+    display_id: "GUEST-1002",
     first_name: "Bob",
     last_name: "Martin",
     email: "bob@example.com",
@@ -338,7 +491,7 @@ export const bookings: Booking[] = [
     booking_reference: "BK-2026-001",
     checkin_date: "2026-04-01T15:00:00Z",
     checkout_date: "2026-04-05T11:00:00Z",
-    booking_status: "confirmed",
+    booking_status: "checked-in",
     created_at: "2026-03-15T10:30:00Z",
     modified_at: "2026-03-15T10:30:00Z",
     notes: "Late check-in requested",
@@ -474,7 +627,7 @@ export const adminUser = {
 
 // Staff user for demo (staff_id: 1)
 export const staffUser = {
-  staff_id: 1,
+  id: 1,
   email: "mike.davis@grandplaza.com",
   password: "staff123",
   role: "staff",

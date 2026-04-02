@@ -1,20 +1,24 @@
-// API Service Layer - abstraction for backend calls
-// Can be connected to a real backend later
+// API Service Layer - connected to Laravel backend
+// All requests go through the Vite proxy (/api -> http://localhost:8000/api)
 
-import { 
-  Hotel, 
-  Room, 
-  RoomType, 
-  Booking, 
-  Guest, 
-  Rate
-} from '../data/mockData';
-import { 
-  HotelCreateSchema, 
-  RoomCreateSchema, 
+import {
+  Hotel,
+  Room,
+  RoomType,
+  Booking,
+  Guest,
+  Rate,
+  Amenity,
+  Payment,
+  Charge,
+  Staff,
+} from '../types';
+import {
+  HotelCreateSchema,
+  RoomCreateSchema,
   BookingCreateSchema,
   GuestCreateSchema,
-  RateCreateSchema
+  RateCreateSchema,
 } from '../validations';
 import { z } from 'zod';
 
@@ -25,211 +29,308 @@ export interface ApiResponse<T> {
   errors?: Record<string, string>;
 }
 
+const API_BASE = '/api';
+
+async function apiFetch<T>(
+  url: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    const json = await response.json();
+
+    if (!response.ok) {
+      // Laravel validation errors
+      if (json.errors && typeof json.errors === 'object') {
+        const flatErrors: Record<string, string> = {};
+        for (const [key, messages] of Object.entries(json.errors)) {
+          flatErrors[key] = Array.isArray(messages) ? messages[0] : String(messages);
+        }
+        return { success: false, errors: flatErrors };
+      }
+      return { success: false, error: json.error || json.message || 'Request failed' };
+    }
+
+    return { success: true, data: json.data };
+  } catch (error) {
+    console.error('API Error:', error);
+    return { success: false, error: 'Network error. Is the backend running?' };
+  }
+}
+
 // Hotels
 export const hotelService = {
   async getAll(): Promise<ApiResponse<Hotel[]>> {
-    try {
-      // TODO: Replace with actual API call
-      return { success: true, data: [] };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch hotels' };
-    }
+    return apiFetch<Hotel[]>('/hotels');
   },
 
   async getById(id: number): Promise<ApiResponse<Hotel>> {
-    try {
-      // TODO: Replace with actual API call
-      return { success: true, data: {} as Hotel };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch hotel' };
-    }
+    return apiFetch<Hotel>(`/hotels/${id}`);
   },
 
   async create(data: z.infer<typeof HotelCreateSchema>): Promise<ApiResponse<Hotel>> {
-    try {
-      const validated = HotelCreateSchema.parse(data);
-      // TODO: Replace with actual API call
-      return { success: true, data: { hotel_id: 1, ...validated, created_at: new Date().toISOString() } };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          const key = err.path.join('.');
-          errors[key] = err.message;
-        });
-        return { success: false, errors };
-      }
-      return { success: false, error: 'Failed to create hotel' };
-    }
+    return apiFetch<Hotel>('/hotels', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   async update(id: number, data: Partial<Hotel>): Promise<ApiResponse<Hotel>> {
-    try {
-      // TODO: Replace with actual API call
-      return { success: true, data: { ...data } as Hotel };
-    } catch (error) {
-      return { success: false, error: 'Failed to update hotel' };
-    }
+    return apiFetch<Hotel>(`/hotels/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   async delete(id: number): Promise<ApiResponse<void>> {
-    try {
-      // TODO: Replace with actual API call
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: 'Failed to delete hotel' };
-    }
+    return apiFetch<void>(`/hotels/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
 // Rooms
 export const roomService = {
   async getBy(hotelId?: number): Promise<ApiResponse<Room[]>> {
-    try {
-      // TODO: Replace with actual API call
-      return { success: true, data: [] };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch rooms' };
-    }
+    const params = hotelId ? `?hotel_id=${hotelId}` : '';
+    return apiFetch<Room[]>(`/rooms${params}`);
+  },
+
+  async getById(id: number): Promise<ApiResponse<Room>> {
+    return apiFetch<Room>(`/rooms/${id}`);
   },
 
   async create(data: z.infer<typeof RoomCreateSchema>): Promise<ApiResponse<Room>> {
-    try {
-      const validated = RoomCreateSchema.parse(data);
-      return { success: true, data: { room_id: 1, ...validated } as Room };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          const key = err.path.join('.');
-          errors[key] = err.message;
-        });
-        return { success: false, errors };
-      }
-      return { success: false, error: 'Failed to create room' };
-    }
+    return apiFetch<Room>('/rooms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: number, data: Partial<Room>): Promise<ApiResponse<Room>> {
+    return apiFetch<Room>(`/rooms/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   async updateStatus(roomId: number, status: Room['status']): Promise<ApiResponse<Room>> {
-    try {
-      return { success: true, data: {} as Room };
-    } catch (error) {
-      return { success: false, error: 'Failed to update room status' };
-    }
+    return apiFetch<Room>(`/rooms/${roomId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
   },
 };
 
 // Bookings
 export const bookingService = {
   async getAll(filters?: { hotelId?: number; guestId?: number }): Promise<ApiResponse<Booking[]>> {
-    try {
-      return { success: true, data: [] };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch bookings' };
-    }
+    const params = new URLSearchParams();
+    if (filters?.hotelId) params.append('hotel_id', String(filters.hotelId));
+    if (filters?.guestId) params.append('guest_id', String(filters.guestId));
+    const qs = params.toString();
+    return apiFetch<Booking[]>(`/bookings${qs ? '?' + qs : ''}`);
   },
 
-  async create(data: z.infer<typeof BookingCreateSchema>): Promise<ApiResponse<Booking>> {
-    try {
-      const validated = BookingCreateSchema.parse(data);
-      return { success: true, data: { booking_id: 1, ...validated, booking_reference: 'HTL-' + Date.now(), booking_status: 'pending', created_at: new Date().toISOString(), modified_at: new Date().toISOString() } as unknown as Booking };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          const key = err.path.join('.');
-          errors[key] = err.message;
-        });
-        return { success: false, errors };
-      }
-      return { success: false, error: 'Failed to create booking' };
-    }
+  async getById(id: number): Promise<ApiResponse<Booking>> {
+    return apiFetch<Booking>(`/bookings/${id}`);
+  },
+
+  async create(data: any): Promise<ApiResponse<Booking>> {
+    return apiFetch<Booking>('/bookings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: number, data: Partial<Booking>): Promise<ApiResponse<Booking>> {
+    return apiFetch<Booking>(`/bookings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   async updateStatus(bookingId: number, status: Booking['booking_status']): Promise<ApiResponse<Booking>> {
-    try {
-      return { success: true, data: {} as Booking };
-    } catch (error) {
-      return { success: false, error: 'Failed to update booking' };
-    }
+    return apiFetch<Booking>(`/bookings/${bookingId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ booking_status: status }),
+    });
   },
 
-  async checkIn(bookingId: number): Promise<ApiResponse<Booking>> {
-    return this.updateStatus(bookingId, 'checked-in');
+  async checkIn(booking_id: number): Promise<ApiResponse<Booking>> {
+    return this.updateStatus(booking_id, 'checked-in');
   },
 
-  async checkOut(bookingId: number): Promise<ApiResponse<Booking>> {
-    return this.updateStatus(bookingId, 'checked-out');
+  async checkOut(booking_id: number): Promise<ApiResponse<Booking>> {
+    return this.updateStatus(booking_id, 'checked-out');
   },
 };
 
 // Guests
 export const guestService = {
   async getAll(): Promise<ApiResponse<Guest[]>> {
-    try {
-      return { success: true, data: [] };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch guests' };
-    }
+    return apiFetch<Guest[]>('/guests');
+  },
+
+  async getById(id: number): Promise<ApiResponse<Guest>> {
+    return apiFetch<Guest>(`/guests/${id}`);
   },
 
   async create(data: z.infer<typeof GuestCreateSchema>): Promise<ApiResponse<Guest>> {
-    try {
-      const validated = GuestCreateSchema.parse(data);
-      return { success: true, data: { guest_id: 1, ...validated, created_at: new Date().toISOString() } as Guest };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          const key = err.path.join('.');
-          errors[key] = err.message;
-        });
-        return { success: false, errors };
-      }
-      return { success: false, error: 'Failed to create guest' };
-    }
+    return apiFetch<Guest>('/guests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: number, data: Partial<Guest>): Promise<ApiResponse<Guest>> {
+    return apiFetch<Guest>(`/guests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 };
 
 // Room Types
 export const roomTypeService = {
   async getBy(hotelId?: number): Promise<ApiResponse<RoomType[]>> {
-    try {
-      return { success: true, data: [] };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch room types' };
-    }
+    const params = hotelId ? `?hotel_id=${hotelId}` : '';
+    return apiFetch<RoomType[]>(`/room-types${params}`);
   },
 
-  async create(data: z.infer<typeof RateCreateSchema>): Promise<ApiResponse<RoomType>> {
-    try {
-      return { success: true, data: {} as RoomType };
-    } catch (error) {
-      return { success: false, error: 'Failed to create room type' };
-    }
+  async getById(id: number): Promise<ApiResponse<RoomType>> {
+    return apiFetch<RoomType>(`/room-types/${id}`);
+  },
+
+  async create(data: any): Promise<ApiResponse<RoomType>> {
+    return apiFetch<RoomType>('/room-types', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: number, data: any): Promise<ApiResponse<RoomType>> {
+    return apiFetch<RoomType>(`/room-types/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 };
 
 // Rates
 export const rateService = {
+  async getAll(filters?: { hotelId?: number; roomTypeId?: number }): Promise<ApiResponse<Rate[]>> {
+    const params = new URLSearchParams();
+    if (filters?.hotelId) params.append('hotel_id', String(filters.hotelId));
+    if (filters?.roomTypeId) params.append('room_type_id', String(filters.roomTypeId));
+    const qs = params.toString();
+    return apiFetch<Rate[]>(`/rates${qs ? '?' + qs : ''}`);
+  },
+
   async getForDateRange(
     hotelId: number,
     roomTypeId: number,
     startDate: string,
     endDate: string
   ): Promise<ApiResponse<Rate[]>> {
-    try {
-      return { success: true, data: [] };
-    } catch (error) {
-      return { success: false, error: 'Failed to fetch rates' };
-    }
+    const params = new URLSearchParams({
+      hotel_id: String(hotelId),
+      room_type_id: String(roomTypeId),
+    });
+    return apiFetch<Rate[]>(`/rates?${params.toString()}`);
   },
 
   async create(data: z.infer<typeof RateCreateSchema>): Promise<ApiResponse<Rate>> {
-    try {
-      return { success: true, data: {} as Rate };
-    } catch (error) {
-      return { success: false, error: 'Failed to create rate' };
-    }
+    return apiFetch<Rate>('/rates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: number, data: any): Promise<ApiResponse<Rate>> {
+    return apiFetch<Rate>(`/rates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Amenities
+export const amenityService = {
+  async getAll(): Promise<ApiResponse<Amenity[]>> {
+    return apiFetch<Amenity[]>('/amenities');
+  },
+};
+
+// Staff
+export const staffService = {
+  async getAll(hotelId?: number): Promise<ApiResponse<Staff[]>> {
+    const params = hotelId ? `?hotel_id=${hotelId}` : '';
+    return apiFetch<Staff[]>(`/staff${params}`);
+  },
+};
+
+// Payments
+export const paymentService = {
+  async getByBooking(bookingId: number): Promise<ApiResponse<Payment[]>> {
+    return apiFetch<Payment[]>(`/payments?booking_id=${bookingId}`);
+  },
+
+  async create(data: any): Promise<ApiResponse<Payment>> {
+    return apiFetch<Payment>('/payments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Charges
+export const chargeService = {
+  async getByBooking(bookingId: number): Promise<ApiResponse<Charge[]>> {
+    return apiFetch<Charge[]>(`/charges?booking_id=${bookingId}`);
+  },
+
+  async create(data: any): Promise<ApiResponse<Charge>> {
+    return apiFetch<Charge>('/charges', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Auth
+export const authService = {
+  async login(email: string, password: string): Promise<ApiResponse<any>> {
+    return apiFetch<any>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
+
+  async signup(data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+  }): Promise<ApiResponse<any>> {
+    return apiFetch<any>('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Dashboard
+export const dashboardService = {
+  async getStats(): Promise<ApiResponse<any>> {
+    return apiFetch<any>('/dashboard/stats');
   },
 };

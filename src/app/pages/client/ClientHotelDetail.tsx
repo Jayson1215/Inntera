@@ -1,32 +1,34 @@
-import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { MapPin, Phone, Star, Users, Wifi, Coffee, Tv } from 'lucide-react';
-import { hotels, roomTypes, amenities, roomAmenities } from '../../data/mockData';
-import { toast } from 'sonner';
+import { MapPin, Phone, Star, Users, Wifi, Coffee, Tv, Layers, Loader2 } from 'lucide-react';
+import { useBooking } from '../../context/BookingContext';
 
 export function ClientHotelDetail() {
   const { hotelId } = useParams();
   const navigate = useNavigate();
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [adults, setAdults] = useState('2');
-  const [children, setChildren] = useState('0');
-  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  const { hotels, roomTypes, rooms, isLoading } = useBooking();
 
-  const hotel = hotels.find(h => h.hotel_id === parseInt(hotelId || '0'));
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center text-emerald-600">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold animate-pulse uppercase tracking-widest text-xs">Preparing the finest suites...</p>
+      </div>
+    );
+  }
+
+  const hotel = hotels.find(h => h.id === parseInt(hotelId || '0'));
   const hotelRoomTypes = roomTypes.filter(rt => rt.hotel_id === parseInt(hotelId || '0'));
 
   if (!hotel) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Hotel not found</p>
-        <Button onClick={() => navigate('/client/search')} className="mt-4">
+      <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+        <div className="text-6xl mb-4">🏙️</div>
+        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Hotel Not Found</h2>
+        <p className="text-slate-500 mb-8 font-medium">This luxury destination seems to be off the map for now.</p>
+        <Button onClick={() => navigate('/client/search')} className="bg-slate-900 hover:bg-slate-800 px-8 h-12 rounded-xl">
           Back to Search
         </Button>
       </div>
@@ -34,24 +36,7 @@ export function ClientHotelDetail() {
   }
 
   const handleBookRoom = (roomTypeId: number) => {
-    setIsBookingDialogOpen(true);
-  };
-
-  const handleConfirmBooking = () => {
-    if (!checkIn || !checkOut) {
-      toast.error('Please select check-in and check-out dates');
-      return;
-    }
-    toast.success('Booking request submitted successfully!');
-    setIsBookingDialogOpen(false);
-    setTimeout(() => navigate('/client/bookings'), 1500);
-  };
-
-  const getRoomAmenities = (roomTypeId: number) => {
-    const amenityIds = roomAmenities
-      .filter(ra => ra.room_type_id === roomTypeId)
-      .map(ra => ra.amenity_id);
-    return amenities.filter(a => amenityIds.includes(a.amenity_id));
+    navigate(`/client/reserve/${hotelId}/${roomTypeId}`);
   };
 
   return (
@@ -70,9 +55,9 @@ export function ClientHotelDetail() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2 text-black">{hotel.name}</h1>
+                  <h1 className="text-3xl font-bold mb-2 text-black font-serif">{hotel.name}</h1>
                   <div className="flex items-center gap-1 mb-3">
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(hotel.star_rating || 5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
@@ -114,52 +99,95 @@ export function ClientHotelDetail() {
         <h2 className="text-2xl font-bold mb-6 text-black">Available Rooms</h2>
         <div className="space-y-6">
           {hotelRoomTypes.map((roomType, idx) => {
-            const roomAmenitiesList = getRoomAmenities(roomType.room_type_id);
+            const roomAmenitiesList = roomType.amenities || [];
+            const representativeRoom = rooms.find(r => r.room_type_id === roomType.room_type_id && r.hotel_id === parseInt(hotelId || '0'));
             const colors = ['border-emerald-500', 'border-cyan-500', 'border-purple-500'];
             const priceColors = ['text-emerald-600', 'text-cyan-600', 'text-purple-600'];
+            const bgBadgeColors = ['bg-emerald-50', 'bg-cyan-50', 'bg-purple-50'];
+            
             return (
-              <Card key={roomType.room_type_id} className={`border-2 ${colors[idx % 3]} bg-white shadow-lg`}>
-                <CardContent className="p-6 !bg-white">
-                  <div className="flex gap-6">
-                    <div className="w-48 h-48 bg-gradient-to-br from-emerald-100 to-cyan-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">🛏️</div>
-                        <p className="text-sm text-gray-700 font-medium">Room Image</p>
-                      </div>
+              <Card key={roomType.room_type_id} className={`border-2 ${colors[idx % 3]} bg-white shadow-lg overflow-hidden`}>
+                <CardContent className="p-0 !bg-white">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="w-full md:w-64 h-64 bg-slate-100 flex items-center justify-center relative">
+                      <div className="text-6xl text-slate-300">🛏️</div>
+                      {representativeRoom && (
+                        <div className="absolute top-4 left-4">
+                          <Badge className="bg-black/80 text-white border-0 py-1 px-3 rounded-full flex items-center gap-2">
+                            <Layers size={12} />
+                            Floor {representativeRoom.floor}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1 p-8">
+                      <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
                         <div>
-                          <h3 className="text-xl font-bold mb-2 text-black">{roomType.name}</h3>
-                          <p className="text-gray-700 mb-3 font-medium">{roomType.description}</p>
-                          <div className="flex items-center gap-2 text-sm text-gray-800 font-medium">
-                            <Users className="w-4 h-4 text-emerald-600" />
-                            Max {roomType.max_occupancy} guests
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{roomType.name}</h3>
+                            {representativeRoom && (
+                              <Badge variant="outline" className={`${priceColors[idx % 3]} border-current font-bold`}>
+                                Room {representativeRoom.room_number}
+                              </Badge>
+                            )}
                           </div>
+                          <p className="text-slate-500 font-medium leading-relaxed max-w-xl">
+                            {roomType.description}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-3xl font-bold ${priceColors[idx % 3]}`}>${roomType.base_price}</p>
-                          <p className="text-sm text-gray-600 font-medium">per night</p>
+                        <div className="text-left md:text-right">
+                          <p className={`text-4xl font-black ${priceColors[idx % 3]} tracking-tighter`}>₱{Number(roomType.base_price).toLocaleString()}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Per Night</p>
                         </div>
                       </div>
 
-                      <div className="mb-4">
-                        <p className="text-sm font-semibold mb-2 text-black">Room Amenities:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {roomAmenitiesList.map((amenity) => (
-                            <Badge key={amenity.amenity_id} className="bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              {amenity.name}
-                            </Badge>
-                          ))}
+                      <div className="grid md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">Key Features</p>
+                          <div className="flex items-center gap-4 text-slate-700 font-semibold bg-slate-50 p-4 rounded-2xl">
+                             <div className="flex items-center gap-2">
+                               <Users size={18} className="text-slate-400" />
+                               <span>Up to {roomType.max_occupancy} Guests</span>
+                             </div>
+                             <div className="w-[1px] h-4 bg-slate-200"></div>
+                             <div className="flex items-center gap-2">
+                               <div className="text-slate-400">🛏️</div>
+                               <span>{roomType.bed_type} Bed</span>
+                             </div>
+                             <div className="w-[1px] h-4 bg-slate-200"></div>
+                             <div className="flex items-center gap-2">
+                               <Layers size={18} className="text-slate-400" />
+                               <span>Level {representativeRoom?.floor || 'N/A'}</span>
+                             </div>
+                          </div>
                         </div>
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">Included Amenities</p>
+                          <p className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 rounded-2xl">
+                            {roomType.amenities_summary || 'Complimentary premium facilities included.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mb-8">
+                        {roomAmenitiesList.slice(0, 5).map((amenity: any) => (
+                          <Badge key={amenity.amenity_id} className={`${bgBadgeColors[idx % 3]} ${priceColors[idx % 3]} border-0 font-bold px-3 py-1 rounded-lg`}>
+                            {amenity.name}
+                          </Badge>
+                        ))}
+                        {roomAmenitiesList.length > 5 && (
+                          <Badge className="bg-slate-100 text-slate-500 border-0 font-bold px-3 py-1 rounded-lg">
+                            +{roomAmenitiesList.length - 5} More
+                          </Badge>
+                        )}
                       </div>
 
                       <Button 
                         onClick={() => handleBookRoom(roomType.room_type_id)}
-                        className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 font-semibold"
+                        className={`w-full md:w-auto h-12 px-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all shadow-xl shadow-slate-200`}
                       >
-                        Book Now
+                        Reserve This Suite
                       </Button>
                     </div>
                   </div>
@@ -170,77 +198,6 @@ export function ClientHotelDetail() {
         </div>
       </div>
 
-      {/* Booking Dialog */}
-      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-        <DialogContent className="max-w-md bg-white border-2 border-emerald-500 shadow-2xl">
-          <DialogHeader className="border-b border-gray-200 pb-4">
-            <DialogTitle className="text-black text-xl font-bold">Complete Your Booking</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="checkin" className="text-black font-semibold text-sm">Check-in Date</Label>
-              <Input
-                id="checkin"
-                type="date"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                className="text-black bg-white border-2 border-gray-300 focus:border-emerald-500 h-10 text-base"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="checkout" className="text-black font-semibold text-sm">Check-out Date</Label>
-              <Input
-                id="checkout"
-                type="date"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                className="text-black bg-white border-2 border-gray-300 focus:border-emerald-500 h-10 text-base"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="adults" className="text-black font-semibold text-sm">Adults</Label>
-                <Input
-                  id="adults"
-                  type="number"
-                  min="1"
-                  value={adults}
-                  onChange={(e) => setAdults(e.target.value)}
-                  className="text-black bg-white border-2 border-gray-300 focus:border-emerald-500 h-10 text-base"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="children" className="text-black font-semibold text-sm">Children</Label>
-                <Input
-                  id="children"
-                  type="number"
-                  min="0"
-                  value={children}
-                  onChange={(e) => setChildren(e.target.value)}
-                  className="text-black bg-white border-2 border-gray-300 focus:border-emerald-500 h-10 text-base"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end pt-6 border-t border-gray-200">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsBookingDialogOpen(false)} 
-                className="text-black border-2 border-gray-300 hover:bg-gray-50 font-semibold"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleConfirmBooking} 
-                className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 font-semibold shadow-md"
-              >
-                Confirm Booking
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

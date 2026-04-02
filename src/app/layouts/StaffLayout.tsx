@@ -7,7 +7,8 @@ import {
   Calendar,
   BedDouble,
   ClipboardCheck,
-  LogOut
+  LogOut,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
@@ -51,6 +52,7 @@ export function StaffLayout() {
     { path: '/staff/bookings', icon: Calendar, label: 'Bookings' },
     { path: '/staff/rooms', icon: BedDouble, label: 'Room Status' },
     { path: '/staff/checkin', icon: ClipboardCheck, label: 'Check-in/out' },
+    { path: '/staff/cleaning', icon: Sparkles, label: 'Cleaning & Staff' },
   ];
 
   const handleLogout = () => {

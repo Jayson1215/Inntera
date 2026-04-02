@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { adminUser, staffUser, guests } from '../data/mockData';
+import { authService } from '../lib/api';
 
 type UserRole = 'admin' | 'staff' | 'guest' | null;
 
@@ -13,6 +13,7 @@ interface User {
 
 interface SignUpData {
   firstName: string;
+  middleName?: string;
   lastName: string;
   email: string;
   password: string;
@@ -20,8 +21,8 @@ interface SignUpData {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (data: SignUpData) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
+  signup: (data: SignUpData) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -43,58 +44,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      // Validate input
       if (!email || !password) {
         const err = 'Email and password are required';
         setError(err);
         return { success: false, error: err };
       }
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await authService.login(email, password);
 
-      // Check admin
-      if (email === adminUser.email && password === adminUser.password) {
-        const userData: User = { 
-          email, 
-          role: 'admin', 
-          name: 'Admin User',
-          hotel_id: 1
+      if (response.success && response.data) {
+        const userData: User = {
+          email: response.data.email,
+          role: response.data.role,
+          id: response.data.id,
+          name: response.data.name,
+          hotel_id: response.data.hotel_id,
         };
         setUser(userData);
         localStorage.setItem('hotel_user', JSON.stringify(userData));
-        return { success: true };
+        return { success: true, user: userData };
       }
 
-      // Check staff
-      if (email === staffUser.email && password === staffUser.password) {
-        const userData: User = { 
-          email, 
-          role: 'staff', 
-          id: staffUser.staff_id,
-          name: 'Mike Davis',
-          hotel_id: 1 // Default hotel for staff
-        };
-        setUser(userData);
-        localStorage.setItem('hotel_user', JSON.stringify(userData));
-        return { success: true };
-      }
-
-      // Check guests
-      const guest = guests.find(g => g.email === email && g.password === password);
-      if (guest) {
-        const userData: User = { 
-          email, 
-          role: 'guest', 
-          id: guest.guest_id,
-          name: `${guest.first_name} ${guest.last_name}`
-        };
-        setUser(userData);
-        localStorage.setItem('hotel_user', JSON.stringify(userData));
-        return { success: true };
-      }
-
-      const err = 'Invalid email or password';
+      const err = response.error || 'Invalid email or password';
       setError(err);
       return { success: false, error: err };
     } catch (err) {
@@ -111,14 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      // Validate input
       if (!data.firstName || !data.lastName || !data.email || !data.password) {
         const err = 'All fields are required';
         setError(err);
         return { success: false, error: err };
       }
 
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(data.email)) {
         const err = 'Invalid email format';
@@ -126,57 +95,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: err };
       }
 
-      // Validate password length
       if (data.password.length < 6) {
         const err = 'Password must be at least 6 characters';
         setError(err);
         return { success: false, error: err };
       }
 
-      // Check if email already exists
-      if (guests.some(g => g.email === data.email)) {
-        const err = 'Email already registered';
-        setError(err);
-        return { success: false, error: err };
-      }
-
-      // Check if admin or staff email
-      if (data.email === adminUser.email || data.email === staffUser.email) {
-        const err = 'This email is already in use';
-        setError(err);
-        return { success: false, error: err };
-      }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Create new guest
-      const newGuestId = Math.max(...guests.map(g => g.guest_id), 0) + 1;
-      const newGuest: any = {
-        guest_id: newGuestId,
+      const response = await authService.signup({
         first_name: data.firstName,
+        middle_name: data.middleName,
         last_name: data.lastName,
         email: data.email,
-        phone: '',
-        address: '',
         password: data.password,
-        created_at: new Date().toISOString()
-      };
+      });
 
-      // Add to guests array (simulating database insertion)
-      guests.push(newGuest);
+      if (response.success && response.data) {
+        const userData: User = {
+          email: response.data.email,
+          role: response.data.role,
+          id: response.data.id,
+          name: response.data.name,
+          hotel_id: response.data.hotel_id,
+        };
+        setUser(userData);
+        localStorage.setItem('hotel_user', JSON.stringify(userData));
+        return { success: true, user: userData };
+      }
 
-      // Log the user in
-      const userData: User = {
-        email: data.email,
-        role: 'guest',
-        id: newGuestId,
-        name: `${data.firstName} ${data.lastName}`
-      };
-      setUser(userData);
-      localStorage.setItem('hotel_user', JSON.stringify(userData));
-
-      return { success: true };
+      const err = response.error || 'Signup failed';
+      setError(err);
+      return { success: false, error: err };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Signup failed';
       setError(message);
@@ -206,4 +154,3 @@ export function useAuth() {
   }
   return context;
 }
-

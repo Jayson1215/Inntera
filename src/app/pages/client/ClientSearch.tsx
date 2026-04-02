@@ -4,10 +4,11 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { MapPin, Users, Star, Building2 } from 'lucide-react';
-import { hotels, roomTypes } from '../../data/mockData';
+import { MapPin, Users, Star, Building2, Loader2 } from 'lucide-react';
+import { useBooking } from '../../context/BookingContext';
 
 export function ClientSearch() {
+  const { hotels, roomTypes, isLoading } = useBooking();
   const [searchParams] = useSearchParams();
   const [searchCity, setSearchCity] = useState('');
   const [checkIn, setCheckIn] = useState('');
@@ -22,6 +23,15 @@ export function ClientSearch() {
     }
   }, [searchParams]);
 
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center text-emerald-600">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold animate-pulse uppercase tracking-widest text-xs">Finding the best hotels for you...</p>
+      </div>
+    );
+  }
+
   const filteredHotels = searchCity
     ? hotels.filter(h => h.city.toLowerCase().includes(searchCity.toLowerCase()))
     : hotels;
@@ -29,8 +39,8 @@ export function ClientSearch() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black">Search Hotels</h1>
-        <p className="text-gray-700 mt-1">Find your perfect accommodation</p>
+        <h1 className="text-3xl font-bold text-black font-serif">Search Hotels</h1>
+        <p className="text-gray-700 mt-1">Find your perfect accommodation in {searchCity || 'all cities'}</p>
       </div>
 
       {/* Search Form */}
@@ -85,11 +95,12 @@ export function ClientSearch() {
       {/* Results */}
       <div className="space-y-6">
         {filteredHotels.map((hotel) => {
-          const hotelRoomTypes = roomTypes.filter(rt => rt.hotel_id === hotel.hotel_id);
-          const minPrice = Math.min(...hotelRoomTypes.map(rt => rt.base_price));
+          const hotelRoomTypes = roomTypes.filter(rt => rt.hotel_id === hotel.id);
+          const minPrice = hotelRoomTypes.length > 0 ? Math.min(...hotelRoomTypes.map(rt => Number(rt.base_price))) : 0;
+          const maxOccupancy = hotelRoomTypes.length > 0 ? Math.max(...hotelRoomTypes.map(rt => rt.max_occupancy)) : 0;
 
           return (
-            <Card key={hotel.hotel_id} className="hover:shadow-lg transition-shadow border-2 border-cyan-500 bg-white">
+            <Card key={hotel.id} className="hover:shadow-lg transition-shadow border-2 border-cyan-500 bg-white">
               <CardContent className="p-6 bg-white">
                 <div className="flex gap-6">
                   <div className="w-48 h-48 bg-gradient-to-br from-emerald-100 to-cyan-100 rounded-lg flex items-center justify-center">
@@ -134,9 +145,9 @@ export function ClientSearch() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2 text-sm text-gray-800 font-medium">
                         <Users className="w-4 h-4" />
-                        Up to {Math.max(...hotelRoomTypes.map(rt => rt.max_occupancy))} guests
+                        Up to {maxOccupancy} guests
                       </div>
-                      <Link to={`/client/hotel/${hotel.hotel_id}`} className="ml-auto">
+                      <Link to={`/client/hotel/${hotel.id}`} className="ml-auto">
                         <Button>View Details & Book</Button>
                       </Link>
                     </div>

@@ -14,6 +14,7 @@ export function SignUpPage() {
   
   const [formData, setFormData] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
     password: '',
@@ -61,6 +62,7 @@ export function SignUpPage() {
 
     const result = await signup({
       firstName: formData.firstName,
+      middleName: formData.middleName,
       lastName: formData.lastName,
       email: formData.email,
       password: formData.password,
@@ -90,163 +92,166 @@ export function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-cyan-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <nav className="mb-8">
-          <div className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
-              <Hotel className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-emerald-700">Inntera</span>
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-cyan-50 flex flex-col font-sans">
+      {/* Navigation */}
+      <nav className="bg-transparent sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-sky-500 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
+                <Hotel className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-2xl font-black text-sky-800 tracking-tighter">Inntera</span>
+            </Link>
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        {/* Sign Up Card */}
-        <Card className="border-2 border-emerald-200 !bg-white shadow-xl">
-          <CardContent className="p-8 !bg-white">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-black mb-2">Create Account</h1>
-              <p className="text-gray-600">Join Inntera today and start booking your dream hotels</p>
-            </div>
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-black text-[#0f172a] mb-2 tracking-wide italic uppercase">Create Account</h1>
+            <p className="text-slate-500 font-bold tracking-[0.05em] text-xs uppercase">Join Inntera today and start booking your dream hotels</p>
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* First Name */}
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-black font-semibold">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  placeholder="John"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className={`border-2 ${errors.firstName ? 'border-red-500' : 'border-gray-300'} text-black placeholder-gray-500`}
-                />
-                {errors.firstName && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.firstName}
-                  </p>
-                )}
-              </div>
+          {/* Sign Up Card */}
+          <Card className="border-2 border-sky-100 !bg-white shadow-2xl shadow-sky-200/20 rounded-[2.5rem] overflow-hidden">
+            <CardContent className="p-8 sm:p-12 !bg-white">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* First Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-black font-semibold ml-1">First Name</Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      className={`bg-white border-2 ${errors.firstName ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
+                    />
+                  </div>
 
-              {/* Last Name */}
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-black font-semibold">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  placeholder="Doe"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  className={`border-2 ${errors.lastName ? 'border-red-500' : 'border-gray-300'} text-black placeholder-gray-500`}
-                />
-                {errors.lastName && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.lastName}
-                  </p>
-                )}
-              </div>
+                  {/* Middle Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="middleName" className="text-black font-semibold ml-1">Middle Name</Label>
+                    <Input
+                      id="middleName"
+                      name="middleName"
+                      type="text"
+                      placeholder="Optional"
+                      value={formData.middleName}
+                      onChange={handleInputChange}
+                      className={`bg-white border-2 border-slate-100 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
+                    />
+                  </div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-black font-semibold">Email Address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`border-2 ${errors.email ? 'border-red-500' : 'border-gray-300'} text-black placeholder-gray-500`}
-                />
-                {errors.email && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-black font-semibold">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="At least 6 characters"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className={`border-2 ${errors.password ? 'border-red-500' : 'border-gray-300'} text-black placeholder-gray-500`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm font-medium"
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
+                  {/* Last Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-black font-semibold ml-1">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      placeholder="Doe"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      className={`bg-white border-2 ${errors.lastName ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
+                    />
+                  </div>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.password}
-                  </p>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-black font-semibold ml-1">Email Address</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`bg-white border-2 ${errors.email ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-black font-semibold ml-1">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`bg-white border-2 ${errors.password ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5 pr-12`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-500 transition-colors text-sm font-bold"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-black font-semibold ml-1">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Re-enter your password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className={`bg-white border-2 ${errors.confirmPassword ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
+                  />
+                </div>
+
+                {/* Error Summary */}
+                {Object.keys(errors).length > 0 && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-600 font-medium">Please fix the errors above to continue.</p>
+                  </div>
                 )}
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-14 bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white font-black rounded-xl transition-all shadow-lg shadow-sky-100 mt-6 text-sm uppercase tracking-widest"
+                >
+                  {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+                </Button>
+              </form>
+
+              {/* Sign In Link */}
+              <div className="mt-8 text-center border-t border-slate-100 pt-8">
+                <p className="text-slate-500 font-medium text-sm">
+                  Already have an account?{' '}
+                  <Link to="/login" className="text-sky-600 hover:text-sky-700 font-bold text-sm">
+                    Sign In
+                  </Link>
+                </p>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Confirm Password */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-black font-semibold">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Re-enter your password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className={`border-2 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} text-black placeholder-gray-500`}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 font-semibold py-2 rounded-lg mt-6"
-              >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-            </form>
-
-            {/* Sign In Link */}
-            <div className="mt-6 text-center border-t border-gray-200 pt-6">
-              <p className="text-gray-600">
-                Already have an account?{' '}
-                <Link to="/login" className="text-emerald-600 hover:text-emerald-700 font-semibold">
-                  Sign In
-                </Link>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Demo Info */}
-        <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <p className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">Demo Account:</span> admin@inntera.com / admin123
-          </p>
+          {/* Demo Info */}
+          <div className="mt-8 p-6 bg-white rounded-[1.5rem] border-2 border-sky-50 shadow-sm text-center">
+            <p className="text-xs text-slate-500 font-bold tracking-tight">
+              <span className="uppercase text-sky-600 mr-2">Demo Access:</span>
+              admin@inntera.com / admin123
+            </p>
+          </div>
         </div>
       </div>
     </div>

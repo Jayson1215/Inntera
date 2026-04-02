@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
+import { BookingProvider } from '../context/BookingContext';
 import { 
   Building2, 
   BedDouble, 
@@ -69,7 +70,7 @@ export function AdminLayout() {
       <div className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-emerald-950 rounded-full flex items-center justify-center">
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-lg font-bold text-gray-900">Admin</h1>
@@ -100,7 +101,7 @@ export function AdminLayout() {
 
         <div className="p-3 border-t border-gray-200">
           <Button
-            className="w-full justify-start bg-emerald-700 hover:bg-emerald-800 text-white text-sm py-2 rounded-md"
+            className="w-full justify-start bg-emerald-900 hover:bg-emerald-950 text-white text-sm py-2 rounded-md transition-all active:scale-95"
             onClick={handleLogout}
           >
             <LogOut className="w-4 h-4 mr-2" />
@@ -115,7 +116,9 @@ export function AdminLayout() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         </header>
         <main className="flex-1 p-8">
-          <Outlet />
+          <BookingProvider>
+            <Outlet />
+          </BookingProvider>
         </main>
       </div>
     </div>

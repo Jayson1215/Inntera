@@ -22,13 +22,14 @@ export function LoginPage() {
 
     const result = await login(email, password);
 
-    if (result.success) {
+    if (result.success && result.user) {
       toast.success('Login successful!');
       
-      // Redirect based on role
-      if (email.includes('admin')) {
+      const userRole = result.user.role;
+      
+      if (userRole === 'admin') {
         navigate('/admin/dashboard');
-      } else if (email.includes('staff') || email.includes('manager')) {
+      } else if (userRole === 'staff') {
         navigate('/staff/dashboard');
       } else {
         navigate('/client/dashboard');
@@ -63,61 +64,61 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50 to-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-white flex flex-col font-sans">
       {/* Navigation */}
-      <nav className="border-b border-emerald-100 bg-white">
+      <nav className="bg-transparent sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
+              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-sky-500 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
                 <Hotel className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-emerald-700">Inntera</span>
+              <span className="text-2xl font-black text-sky-800 tracking-tighter">Inntera</span>
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Sign in to your account to continue</p>
+            <h1 className="text-4xl font-black text-[#0f172a] mb-2 tracking-wide italic uppercase">Welcome Back</h1>
+            <p className="text-slate-500 font-bold tracking-[0.05em] text-xs uppercase">Please enter your details to sign in.</p>
           </div>
 
           {/* Main Login Card */}
-          <Card className="border border-emerald-100 bg-white shadow-lg rounded-2xl overflow-hidden">
-            <CardContent className="p-8 sm:p-10">
-              <form onSubmit={handleSubmit} className="space-y-5">
+          <Card className="border-2 border-sky-100 !bg-white shadow-2xl shadow-sky-200/20 rounded-[2.5rem] overflow-hidden">
+            <CardContent className="p-8 sm:p-12 !bg-white">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Error Alert */}
                 {(error || authError) && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700">{error || authError}</p>
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-600 font-medium">{error || authError}</p>
                   </div>
                 )}
 
                 {/* Email Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</Label>
+                  <Label htmlFor="email" className="text-black font-semibold ml-1">Email Address</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="admin@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 h-11 rounded-lg focus:border-emerald-500 focus:ring-emerald-500/20"
+                    className="bg-white border-2 border-slate-100 text-slate-900 placeholder:text-slate-400 h-14 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5"
                     required
                   />
                 </div>
 
                 {/* Password Field */}
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700">Password</Label>
-                    <Link to="/" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition">Forgot?</Link>
+                  <div className="flex justify-between items-center ml-1">
+                    <Label htmlFor="password" className="text-black font-semibold">Password</Label>
+                    <Link to="/" className="text-xs text-sky-600 hover:text-sky-700 font-black uppercase tracking-wider transition">Forgot password?</Link>
                   </div>
                   <div className="relative">
                     <Input
@@ -126,15 +127,15 @@ export function LoginPage() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="bg-white border border-gray-200 text-gray-900 placeholder:text-gray-400 h-11 rounded-lg focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
+                      className="bg-white border-2 border-slate-100 text-slate-900 placeholder:text-slate-400 h-14 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all pr-12 font-bold px-5"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-500 transition-colors text-sm font-bold"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
@@ -142,76 +143,56 @@ export function LoginPage() {
                 {/* Sign In Button */}
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg mt-6"
+                  className="w-full h-14 bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white font-black rounded-xl transition-all shadow-lg shadow-sky-100 mt-6 text-sm uppercase tracking-widest"
                   disabled={isLoading}
                 >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                  {isLoading ? "AUTHENTICATING..." : "SIGN IN"}
                 </Button>
               </form>
 
               {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500 text-xs font-medium">DEMO ACCOUNTS</span>
-                </div>
-              </div>
-
-              {/* Demo Login Buttons */}
-              <div className="space-y-2">
-                <Button
-                  className="w-full h-10 border border-gray-200 bg-gray-50 hover:bg-emerald-50 text-gray-900 rounded-lg justify-start transition text-sm"
-                  onClick={() => quickLogin('admin@inntera.com', 'admin123', 'admin')}
-                >
-                  <span className="mr-3">👑</span>
-                  <div className="text-left">
-                    <div className="font-semibold">Admin</div>
-                  </div>
-                </Button>
-
-                <Button
-                  className="w-full h-10 border border-gray-200 bg-gray-50 hover:bg-emerald-50 text-gray-900 rounded-lg justify-start transition text-sm"
-                  onClick={() => quickLogin('mike.davis@grandplaza.com', 'staff123', 'staff')}
-                >
-                  <span className="mr-3">👔</span>
-                  <div className="text-left">
-                    <div className="font-semibold">Staff</div>
-                  </div>
-                </Button>
-
-                <Button
-                  className="w-full h-10 border border-gray-200 bg-gray-50 hover:bg-emerald-50 text-gray-900 rounded-lg justify-start transition text-sm"
-                  onClick={() => quickLogin('alice@example.com', 'password123', 'client')}
-                >
-                  <span className="mr-3">🏨</span>
-                  <div className="text-left">
-                    <div className="font-semibold">Guest</div>
-                  </div>
-                </Button>
+              <div className="mt-8 text-center border-t border-slate-100 pt-8">
+                <p className="text-slate-500 font-medium text-sm">
+                  Don't have an account?{' '}
+                  <Link to="/signup" className="text-sky-600 hover:text-sky-700 font-bold">
+                    Sign Up
+                  </Link>
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Footer */}
-          <div className="text-center mt-6 space-y-2">
-            <p className="text-gray-600 text-sm">
-              Don't have an account?{' '}
-              <Link to="/signup" className="text-emerald-600 hover:text-emerald-700 font-semibold transition">
-                Sign Up
-              </Link>
-            </p>
-            <p className="text-gray-500 text-xs">
-              <Link to="/" className="text-emerald-600 hover:text-emerald-700 transition">
-                Terms & Privacy
-              </Link>
-            </p>
+          {/* Quick Access Portals */}
+          <div className="mt-8 grid grid-cols-1 gap-3">
+            <Button
+              variant="outline"
+              className="w-full h-12 bg-white border-slate-100 hover:bg-slate-50 text-slate-700 rounded-xl justify-start transition-all px-6 group shadow-sm"
+              onClick={() => quickLogin('admin@inntera.com', 'admin123', 'admin')}
+            >
+              <span className="mr-4 text-lg transition-transform group-hover:scale-110">💎</span>
+              <span className="font-bold text-[11px] uppercase tracking-[0.1em]">Admin Portal</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 bg-white border-slate-100 hover:bg-slate-50 text-slate-700 rounded-xl justify-start transition-all px-6 group shadow-sm"
+              onClick={() => quickLogin('receptionist.hotel1.1@inntera.com', 'password123', 'staff')}
+            >
+              <span className="mr-4 text-lg transition-transform group-hover:scale-110">💼</span>
+              <span className="font-bold text-[11px] uppercase tracking-[0.1em]">Staff Access</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 bg-white border-slate-100 hover:bg-slate-50 text-slate-700 rounded-xl justify-start transition-all px-6 group shadow-sm"
+              onClick={() => quickLogin('juan@example.com', 'password123', 'client')}
+            >
+              <span className="mr-4 text-xl transition-transform group-hover:scale-110">🍷</span>
+              <span className="font-bold text-[11px] uppercase tracking-[0.1em]">Guest Account</span>
+            </Button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

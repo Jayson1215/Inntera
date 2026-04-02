@@ -1,153 +1,160 @@
-import { useEffect } from 'react';
-import { Card, CardContent } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui/badge';
-import { bookings as initialBookings, guests } from '../../data/mockData';
-import { BookOpen, CheckCircle, LogOut, Calendar } from 'lucide-react';
+import { BookOpen, CheckCircle, LogOut, Calendar, Loader2, Search } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
+import { Guest, Booking } from '../../types';
 
 export function StaffBookings() {
-  const { bookings, refreshFromStorage } = useBooking();
+  const { bookings, guests, hotels, isLoading, refreshFromStorage } = useBooking();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // Refresh data from storage when component mounts
   useEffect(() => {
     refreshFromStorage();
   }, [refreshFromStorage]);
-  
-  const getStatusColor = (status: string) => {
+
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-teal-600 mb-4" />
+        <p className="text-sm font-semibold text-slate-400 tracking-widest uppercase animate-pulse">Loading Bookings...</p>
+      </div>
+    );
+  }
+
+  const getStatusStyles = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-200 text-green-800 font-semibold';
-      case 'checked-in': return 'bg-blue-200 text-blue-800 font-semibold';
-      case 'checked-out': return 'bg-gray-200 text-gray-800 font-semibold';
-      case 'pending': return 'bg-yellow-200 text-yellow-800 font-semibold';
-      case 'cancelled': return 'bg-red-200 text-red-800 font-semibold';
-      default: return 'bg-gray-200 text-gray-800 font-semibold';
+      case 'confirmed': return 'bg-emerald-100 text-emerald-700';
+      case 'checked-in': return 'bg-blue-100 text-blue-700';
+      case 'checked-out': return 'bg-slate-100 text-slate-600';
+      case 'pending': return 'bg-amber-100 text-amber-700';
+      case 'cancelled': return 'bg-red-100 text-red-700';
+      default: return 'bg-slate-100 text-slate-600';
     }
   };
 
+  const filteredBookings = bookings.filter(b => {
+    const guest = guests.find((g: Guest) => g.id === b.guest_id);
+    const guestName = `${guest?.first_name || ''} ${guest?.last_name || ''}`.toLowerCase();
+    const matchesSearch = !searchTerm || guestName.includes(searchTerm.toLowerCase()) || b.booking_reference.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || b.booking_status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const statusCounts = {
+    total: bookings.length,
+    confirmed: bookings.filter(b => b.booking_status === 'confirmed').length,
+    checkedIn: bookings.filter(b => b.booking_status === 'checked-in').length,
+    checkedOut: bookings.filter(b => b.booking_status === 'checked-out').length,
+  };
+
   return (
-    <div className="p-8">
+    <div className="space-y-6">
       <style>{`
-        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in-down { animation: fadeInDown 0.6s ease-out forwards; }
-        .table-card { background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); border: 1px solid #d1d5db; }
-        .table-row { transition: all 0.3s ease; border-bottom: 1px solid #e5e7eb !important; }
-        .table-row:hover { background-color: #f0fdf4; }
-        thead { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-bottom: 2px solid #059669; }
-        thead th { font-weight: 700; color: #047857; padding: 14px; }
-        tbody td { color: #374151; }
-        .stat-total { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #0ea5e9; }
-        .stat-total-icon { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; }
-        .stat-total-value { color: #0369a1; }
-        .stat-confirmed { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 2px solid #10b981; }
-        .stat-confirmed-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
-        .stat-confirmed-value { color: #047857; }
-        .stat-checkin { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #fbbf24; }
-        .stat-checkin-icon { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; }
-        .stat-checkin-value { color: #d97706; }
-        .stat-checkout { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); border: 2px solid #d946ef; }
-        .stat-checkout-icon { background: linear-gradient(135deg, #d946ef 0%, #c026d3 100%); color: white; }
-        .stat-checkout-value { color: #a11bbe; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
       `}</style>
-      <div className="flex justify-between items-center mb-8 animate-fade-in-down">
+
+      <div className="fade-up flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
-          <p className="text-gray-500 mt-1">View and manage all guest bookings</p>
+          <h1 className="text-3xl font-bold text-slate-900">Bookings</h1>
+          <p className="text-slate-500 mt-1">View and manage all guest bookings</p>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="stat-total">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-blue-800 mb-1">Total Bookings</p>
-                <p className="text-3xl font-bold stat-total-value">{bookings.length}</p>
+      {/* Stats */}
+      <div className="fade-up grid grid-cols-2 md:grid-cols-4 gap-4" style={{ animationDelay: '80ms' }}>
+        {[
+          { label: 'Total', value: statusCounts.total, gradient: 'from-blue-500 to-blue-600', icon: BookOpen },
+          { label: 'Confirmed', value: statusCounts.confirmed, gradient: 'from-emerald-500 to-emerald-600', icon: Calendar },
+          { label: 'Checked In', value: statusCounts.checkedIn, gradient: 'from-amber-500 to-amber-600', icon: CheckCircle },
+          { label: 'Checked Out', value: statusCounts.checkedOut, gradient: 'from-violet-500 to-violet-600', icon: LogOut },
+        ].map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${s.gradient} flex items-center justify-center`}>
+                <Icon className="w-5 h-5 text-white" />
               </div>
-              <div className="stat-total-icon w-12 h-12 rounded-full flex items-center justify-center">
-                <BookOpen className="w-6 h-6" />
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{s.value}</p>
+                <p className="text-xs font-medium text-slate-400">{s.label}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="stat-confirmed">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-emerald-800 mb-1">Confirmed</p>
-                <p className="text-3xl font-bold stat-confirmed-value">{bookings.filter(b => b.booking_status === 'confirmed').length}</p>
-              </div>
-              <div className="stat-confirmed-icon w-12 h-12 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="stat-checkin">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-amber-800 mb-1">Checked In</p>
-                <p className="text-3xl font-bold stat-checkin-value">{bookings.filter(b => b.booking_status === 'checked-in').length}</p>
-              </div>
-              <div className="stat-checkin-icon w-12 h-12 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="stat-checkout">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-purple-800 mb-1">Checked Out</p>
-                <p className="text-3xl font-bold stat-checkout-value">{bookings.filter(b => b.booking_status === 'checked-out').length}</p>
-              </div>
-              <div className="stat-checkout-icon w-12 h-12 rounded-full flex items-center justify-center">
-                <LogOut className="w-6 h-6" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          );
+        })}
       </div>
 
-      <Card className="table-card">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reference</TableHead>
-                <TableHead>Guest</TableHead>
-                <TableHead>Check-in</TableHead>
-                <TableHead>Check-out</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Notes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookings.map((booking) => {
-                const guest = guests.find(g => g.guest_id === booking.guest_id);
+      {/* Search + Filter */}
+      <div className="fade-up flex flex-col md:flex-row gap-3" style={{ animationDelay: '160ms' }}>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input type="text" placeholder="Search by guest or reference..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="checked-in">Checked In</option>
+          <option value="checked-out">Checked Out</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="fade-up bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '240ms' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/80">
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Reference</th>
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Guest</th>
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Hotel</th>
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Check-in</th>
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Check-out</th>
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredBookings.map((booking: Booking) => {
+                const guest = guests.find((g: Guest) => g.id === booking.guest_id);
+                const hotel = booking.hotel || hotels.find(h => h.id === booking.hotel_id);
                 return (
-                  <TableRow key={booking.booking_id} className="table-row">
-                    <TableCell className="font-medium">{booking.booking_reference}</TableCell>
-                    <TableCell>{guest?.first_name} {guest?.last_name}</TableCell>
-                    <TableCell>{new Date(booking.checkin_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(booking.checkout_date).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(booking.booking_status)}>
+                  <tr key={booking.booking_id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-3.5 text-sm font-mono font-semibold text-teal-600">{booking.booking_reference}</td>
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                          {guest?.first_name?.charAt(0) || '?'}
+                        </div>
+                        <span className="text-sm font-medium text-slate-900">{guest?.first_name} {guest?.last_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm text-slate-600">{hotel?.name}</td>
+                    <td className="px-6 py-3.5 text-sm text-slate-600">{new Date(booking.checkin_date).toLocaleDateString()}</td>
+                    <td className="px-6 py-3.5 text-sm text-slate-600">{new Date(booking.checkout_date).toLocaleDateString()}</td>
+                    <td className="px-6 py-3.5">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getStatusStyles(booking.booking_status)}`}>
                         {booking.booking_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">{booking.notes || '-'}</TableCell>
-                  </TableRow>
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm text-slate-400 max-w-[150px] truncate">{booking.notes || '—'}</td>
+                  </tr>
                 );
               })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </table>
+          {filteredBookings.length === 0 && (
+            <div className="px-6 py-16 text-center text-slate-400">
+              <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No bookings found</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-

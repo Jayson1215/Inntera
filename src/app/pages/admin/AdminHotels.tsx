@@ -1,23 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Plus, Edit, Trash2, MapPin, Phone, AlertCircle } from 'lucide-react';
-import { hotels, Hotel } from '../../data/mockData';
+import { Plus, Edit, Trash2, MapPin, Phone, AlertCircle, Loader2 } from 'lucide-react';
+import { Hotel } from '../../types';
+import { useBooking } from '../../context/BookingContext';
 import { HotelCreateSchema } from '../../validations';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
 export function AdminHotels() {
+  const { hotels, isLoading } = useBooking();
   const [hotelList, setHotelList] = useState<Hotel[]>(hotels);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [formData, setFormData] = useState<Partial<Hotel>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setHotelList(hotels);
+  }, [hotels]);
+
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center text-emerald-600">
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+        <p className="font-bold animate-pulse uppercase tracking-widest text-xs">Accessing Property Management...</p>
+      </div>
+    );
+  }
 
   const validateForm = (): boolean => {
     try {
@@ -49,17 +64,18 @@ export function AdminHotels() {
     try {
       if (editingHotel) {
         setHotelList(hotelList.map(h => 
-          h.hotel_id === editingHotel.hotel_id ? { ...h, ...formData } : h
+          h.id === editingHotel.id ? { ...h, ...formData } : h
         ));
         toast.success('Hotel updated successfully');
       } else {
         const newHotel: Hotel = {
-          hotel_id: Math.max(...hotelList.map(h => h.hotel_id), 0) + 1,
+          id: Math.max(...hotelList.map(h => h.id), 0) + 1,
+          display_id: `HTL-${String(Math.max(...hotelList.map(h => h.id), 0) + 1).padStart(3, '0')}`,
           name: formData.name || '',
           address: formData.address || '',
           city: formData.city || '',
           phone: formData.phone || '',
-          timezone: formData.timezone || 'America/New_York',
+          timezone: formData.timezone || 'Asia/Manila',
           created_at: new Date().toISOString(),
         };
         setHotelList([...hotelList, newHotel]);
@@ -77,7 +93,7 @@ export function AdminHotels() {
 
   const handleDelete = (hotelId: number) => {
     if (confirm('Are you sure you want to delete this hotel?')) {
-      setHotelList(hotelList.filter(h => h.hotel_id !== hotelId));
+      setHotelList(hotelList.filter(h => h.id !== hotelId));
       toast.success('Hotel deleted successfully');
     }
   };
@@ -250,7 +266,7 @@ export function AdminHotels() {
               </TableHeader>
               <TableBody>
                 {hotelList.map((hotel) => (
-                  <TableRow key={hotel.hotel_id}>
+                  <TableRow key={hotel.id}>
                     <TableCell className="font-medium">{hotel.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -277,7 +293,7 @@ export function AdminHotels() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(hotel.hotel_id)}
+                        onClick={() => handleDelete(hotel.id)}
                         title="Delete"
                         className="text-red-600 hover:bg-red-50"
                       >
