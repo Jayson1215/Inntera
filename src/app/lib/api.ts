@@ -29,7 +29,8 @@ export interface ApiResponse<T> {
   errors?: Record<string, string>;
 }
 
-const API_BASE = '/api';
+// Use the environment variable in production, fallback to local proxy during development
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function apiFetch<T>(
   url: string,
