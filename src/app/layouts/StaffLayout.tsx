@@ -8,9 +8,12 @@ import {
   BedDouble,
   ClipboardCheck,
   LogOut,
-  Sparkles
+  Sparkles,
+  Menu,
+  User
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 
 export function StaffLayout() {
   const { user, logout } = useAuth();
@@ -60,60 +63,96 @@ export function StaffLayout() {
     navigate('/');
   };
 
-  return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-              <ClipboardCheck className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-lg font-bold text-gray-900">Staff</h1>
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full bg-white">
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-lg">
+            <ClipboardCheck className="w-5 h-5 text-white" />
           </div>
-          <p className="text-xs text-gray-600">{user.name}</p>
+          <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Staff</h1>
         </div>
-        
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-md transition-all text-sm font-medium ${
-                  isActive
-                    ? 'bg-red-50 text-red-600 border-l-2 border-red-500'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-3 border-t border-gray-200">
-          <Button
-            className="w-full justify-start bg-red-500 hover:bg-red-600 text-white text-sm py-2 rounded-md"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{user?.name || 'Staff Member'}</p>
       </div>
+      
+      <nav className="flex-1 p-3 space-y-1">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm font-bold uppercase tracking-tight ${
+                isActive
+                  ? 'bg-red-50 text-red-600 shadow-sm border-l-4 border-red-600'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="p-4 border-t border-gray-100">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 font-bold transition-all active:scale-95"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout Terminal
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 border-r border-gray-200 shadow-sm z-20">
+        <SidebarContent />
+      </aside>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto flex flex-col">
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Operations</h1>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Responsive Header */}
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            {/* Mobile Menu Trigger */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="w-6 h-6 text-gray-600" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <SidebarContent />
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">
+              {navItems.find(item => item.path === location.pathname)?.label || 'Operations'}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <div className="hidden sm:flex flex-col items-end">
+               <span className="text-sm font-black text-gray-900">{user?.name}</span>
+               <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Operations Staff</span>
+             </div>
+             <div className="w-8 h-8 rounded-full bg-red-100 border-2 border-red-200 flex items-center justify-center">
+                <User className="w-4 h-4 text-red-700" />
+             </div>
+          </div>
         </header>
-        <main className="flex-1 p-8">
+
+        <main className="flex-1 overflow-auto p-4 md:p-8 scroll-smooth pb-20 md:pb-8">
           <BookingProvider>
-            <Outlet />
+            <div className="max-w-7xl mx-auto space-y-6">
+               <Outlet />
+            </div>
           </BookingProvider>
         </main>
       </div>

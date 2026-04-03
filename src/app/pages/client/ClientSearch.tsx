@@ -100,55 +100,62 @@ export function ClientSearch() {
           const maxOccupancy = hotelRoomTypes.length > 0 ? Math.max(...hotelRoomTypes.map(rt => rt.max_occupancy)) : 0;
 
           return (
-            <Card key={hotel.id} className="hover:shadow-lg transition-shadow border-2 border-cyan-500 bg-white">
-              <CardContent className="p-6 bg-white">
-                <div className="flex gap-6">
-                  <div className="w-48 h-48 bg-gradient-to-br from-emerald-100 to-cyan-100 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <Building2 className="w-16 h-16 text-emerald-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-700 font-semibold">Hotel Image</p>
+            <Card key={hotel.id} className="hover:shadow-lg transition-all border-2 border-cyan-500 bg-white overflow-hidden group">
+              <CardContent className="p-0 bg-white">
+                <div className="flex flex-col md:flex-row">
+                  {/* Image Placeholder */}
+                  <div className="w-full md:w-64 h-48 md:h-auto bg-gradient-to-br from-emerald-100 to-cyan-100 flex flex-col items-center justify-center relative overflow-hidden">
+                    <Building2 className="w-16 h-16 text-emerald-600 mb-2 group-hover:scale-110 transition-transform" />
+                    <p className="text-xs text-emerald-700 font-bold uppercase tracking-widest">Inntera Property</p>
+                    <div className="absolute top-4 left-4 bg-black/80 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-tighter">
+                      Featured
                     </div>
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-2xl font-semibold mb-2 text-black">{hotel.name}</h3>
-                        <div className="flex items-center gap-2 text-gray-800 mb-2">
-                          <MapPin className="w-4 h-4" />
+                  <div className="flex-1 p-6 flex flex-col">
+                    <div className="flex flex-col md:flex-row items-start justify-between mb-4 gap-4">
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-black mb-1 text-gray-900 uppercase tracking-tighter">{hotel.name}</h3>
+                        <div className="flex items-center gap-2 text-gray-600 mb-3 text-sm font-bold">
+                          <MapPin className="w-4 h-4 text-red-500" />
                           {hotel.address}, {hotel.city}
                         </div>
                         <div className="flex items-center gap-1">
                           {[...Array(5)].map((_, i) => (
                             <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                           ))}
+                          <span className="text-xs font-bold text-gray-500 ml-2">(4.8 / 5.0)</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-700">From</p>
-                        <p className="text-3xl font-bold text-emerald-600">${minPrice}</p>
-                        <p className="text-sm text-gray-700">per night</p>
+                      <div className="w-full md:w-auto p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center md:text-right">
+                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Starting from</p>
+                        <div className="flex items-baseline justify-center md:justify-end gap-1">
+                          <span className="text-3xl font-black text-gray-900">${minPrice}</span>
+                          <span className="text-xs font-bold text-gray-500 uppercase">/ night</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-900 mb-2 font-semibold">Available Room Types:</p>
+                    <div className="mb-6">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Available Accommodations</p>
                       <div className="flex flex-wrap gap-2">
                         {hotelRoomTypes.map((rt) => (
-                          <div key={rt.room_type_id} className="px-3 py-1 bg-emerald-100 rounded-full text-sm text-black font-medium">
+                          <div key={rt.room_type_id} className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 font-bold shadow-sm hover:border-emerald-300 transition-colors">
                             {rt.name} • ${rt.base_price}
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-800 font-medium">
-                        <Users className="w-4 h-4" />
+                    <div className="mt-auto flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 font-bold uppercase tracking-tight">
+                        <Users className="w-4 h-4 text-emerald-600" />
                         Up to {maxOccupancy} guests
                       </div>
-                      <Link to={`/client/hotel/${hotel.id}`} className="ml-auto">
-                        <Button>View Details & Book</Button>
+                      <Link to={`/client/hotel/${hotel.id}`} className="w-full sm:w-auto sm:ml-auto">
+                        <Button className="w-full bg-black hover:bg-zinc-800 text-white font-black uppercase tracking-widest text-xs py-5 rounded-xl shadow-lg active:scale-95 transition-all">
+                          Check Availability
+                        </Button>
                       </Link>
                     </div>
                   </div>

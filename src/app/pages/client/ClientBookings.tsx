@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
-import { Calendar, MapPin, Clock, Search, BedDouble, CreditCard } from 'lucide-react';
+import { Calendar, MapPin, Clock, Search, BedDouble, CreditCard, ChevronRight } from 'lucide-react';
+import { Button } from '../../components/ui/button';
 
 export function ClientBookings() {
   const { user } = useAuth();
@@ -20,12 +21,12 @@ export function ClientBookings() {
 
   const getStatusStyles = (status: string) => {
     switch (status) {
-      case 'confirmed': return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Confirmed' };
-      case 'checked-in': return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Checked In' };
-      case 'pending': return { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pending' };
-      case 'checked-out': return { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Completed' };
-      case 'cancelled': return { bg: 'bg-red-100', text: 'text-red-700', label: 'Cancelled' };
-      default: return { bg: 'bg-slate-100', text: 'text-slate-600', label: status };
+      case 'confirmed': return { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Confirmed' };
+      case 'checked-in': return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', label: 'Checked In' };
+      case 'pending': return { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', label: 'Pending' };
+      case 'checked-out': return { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200', label: 'Completed' };
+      case 'cancelled': return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', label: 'Cancelled' };
+      default: return { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', label: status };
     }
   };
 
@@ -35,132 +36,152 @@ export function ClientBookings() {
   };
 
   return (
-    <div className="min-h-[80vh]">
-      <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
-      `}</style>
-
+    <div className="max-w-4xl mx-auto pb-10">
       {/* Header */}
-      <div className="fade-up mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">My Bookings</h1>
-        <p className="text-slate-500 mt-1">{userBookings.length} total {userBookings.length === 1 ? 'booking' : 'bookings'}</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="fade-up flex gap-2 mb-6 bg-slate-100 p-1 rounded-xl w-fit" style={{ animationDelay: '100ms' }}>
-        {(['all', 'upcoming', 'past'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === 'upcoming' && userBookings.filter(b => ['confirmed', 'pending', 'checked-in'].includes(b.booking_status)).length > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-bold">
-                {userBookings.filter(b => ['confirmed', 'pending', 'checked-in'].includes(b.booking_status)).length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Bookings Grid */}
-      {filteredBookings.length === 0 ? (
-        <div className="fade-up bg-white rounded-2xl border border-slate-200 px-6 py-16 text-center" style={{ animationDelay: '200ms' }}>
-          <Calendar className="w-14 h-14 mx-auto mb-4 text-slate-200" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2">
-            {activeTab === 'upcoming' ? 'No upcoming stays' : activeTab === 'past' ? 'No past stays' : 'No bookings yet'}
-          </h2>
-          <p className="text-slate-400 mb-6 text-sm">
-            {activeTab === 'upcoming' ? 'Your next adventure awaits!' : 'Start exploring hotels and make your first reservation'}
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">My Bookings</h1>
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-1">
+            {userBookings.length} TOTAL {userBookings.length === 1 ? 'RESERVATION' : 'RESERVATIONS'}
           </p>
-          <button onClick={() => navigate('/client/search')}
-            className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl transition-all">
-            <Search className="w-4 h-4" /> Browse Hotels
-          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredBookings.map((booking, index) => {
+        
+        {/* Modern Segmented Control for Tabs */}
+        <div className="bg-gray-100 p-1 rounded-xl flex w-full md:w-auto shadow-inner">
+          {(['all', 'upcoming', 'past'] as const).map(tab => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === tab 
+                  ? 'bg-white text-black shadow-md scale-[1.02]' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bookings List */}
+      <div className="space-y-6">
+        {filteredBookings.length === 0 ? (
+          <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 py-20 px-6 text-center">
+            <Calendar className="w-16 h-16 mx-auto mb-6 text-gray-200" />
+            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter mb-2">
+              No stays found here
+            </h2>
+            <p className="text-gray-500 font-bold text-sm mb-8 max-w-xs mx-auto">
+              Your itinerary is currently empty in this category. Ready for a new checkout?
+            </p>
+            <Button 
+              onClick={() => navigate('/client/search')}
+              className="bg-black hover:bg-zinc-800 text-white font-black uppercase tracking-widest px-8 py-6 rounded-2xl shadow-xl active:scale-95 transition-all text-xs"
+            >
+              <Search className="w-4 h-4 mr-2" /> Start Browsing
+            </Button>
+          </div>
+        ) : (
+          filteredBookings.map((booking, index) => {
             const hotel = booking.hotel || hotels.find(h => h.id === booking.hotel_id);
             const status = getStatusStyles(booking.booking_status);
             const nights = getNights(booking.checkin_date, booking.checkout_date);
             const bookingRooms = booking.booking_rooms || [];
 
             return (
-              <div key={booking.booking_id} className="fade-up bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
-                style={{ animationDelay: `${200 + index * 80}ms` }}>
-                {/* Top accent bar */}
-                <div className={`h-1 ${booking.booking_status === 'confirmed' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : booking.booking_status === 'checked-in' ? 'bg-gradient-to-r from-blue-400 to-indigo-500' : booking.booking_status === 'pending' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-slate-200'}`}></div>
+              <div 
+                key={booking.booking_id} 
+                className="bg-white rounded-3xl border border-gray-200 overflow-hidden hover:border-black transition-all group"
+              >
+                <div className="p-1">
+                   <div className={`h-1.5 w-full rounded-t-full ${status.bg} border-b ${status.border}`} />
+                </div>
                 
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center flex-shrink-0">
-                        <MapPin className="w-6 h-6 text-teal-400" />
+                <div className="p-6 md:p-8">
+                  <div className="flex flex-col lg:flex-row justify-between gap-8">
+                    {/* Hotel Info Section */}
+                    <div className="flex items-start gap-5">
+                      <div className="w-16 h-16 rounded-2xl bg-gray-900 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-lg">
+                        <MapPin className="w-7 h-7 text-red-500" />
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900">{hotel?.name || 'Hotel'}</h3>
-                        <p className="text-sm text-slate-400">{hotel?.city} • {hotel?.address}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                           <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${status.bg} ${status.text}`}>
+                             {status.label}
+                           </span>
+                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                             REF: {booking.booking_reference}
+                           </span>
+                        </div>
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter mb-1">{hotel?.name || 'Inntera Hotel'}</h3>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-tight">{hotel?.city} • {hotel?.address}</p>
                         
-                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm text-slate-600">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(booking.checkout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-6 text-xs font-black uppercase tracking-widest text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-red-500" />
+                            {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {new Date(booking.checkout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            {nights} {nights === 1 ? 'night' : 'nights'}
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-gray-400" />
+                            {nights} {nights === 1 ? 'NIGHT' : 'NIGHTS'}
                           </div>
-                          {bookingRooms.length > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <BedDouble className="w-3.5 h-3.5 text-slate-400" />
-                              {bookingRooms.length} {bookingRooms.length === 1 ? 'room' : 'rooms'}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2">
+                             <BedDouble className="w-4 h-4 text-gray-400" />
+                             {bookingRooms.length} {bookingRooms.length === 1 ? 'UNIT' : 'UNITS'}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.bg} ${status.text}`}>
-                        {status.label}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400">{booking.booking_reference}</span>
-                      {booking.total_cost && (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-lg font-bold text-slate-900">₱{Number(booking.total_cost).toLocaleString()}</span>
+                    {/* Price & Action Section */}
+                    <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between border-t lg:border-t-0 pt-6 lg:pt-0 border-gray-100">
+                      <div className="text-left lg:text-right">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Valuation</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-2xl font-black text-gray-900 leading-none">₱{Number(booking.total_cost).toLocaleString()}</span>
+                          <ChevronRight className="w-5 h-5 text-gray-300 lg:hidden" />
                         </div>
-                      )}
+                        {booking.payments && booking.payments.length > 0 && (
+                          <div className="flex items-center gap-2 text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-2">
+                            <CreditCard className="w-3 h-3" />
+                            Paid Completed
+                          </div>
+                        )}
+                      </div>
+                      
+                      <Button 
+                        variant="ghost"
+                        className="hidden lg:flex mt-4 text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 active:scale-95"
+                      >
+                        Manage Reservation
+                      </Button>
                     </div>
                   </div>
 
-                  {/* Room details */}
+                  {/* Room Details Sub-section */}
                   {bookingRooms.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Confirmed Units</p>
                       <div className="flex flex-wrap gap-2">
                         {bookingRooms.map((br: any, i: number) => (
-                          <span key={i} className="px-3 py-1.5 rounded-lg bg-slate-50 text-sm text-slate-600 border border-slate-100">
-                            Room {br.room?.room_number || br.room_id} • {br.adults_count} {br.adults_count === 1 ? 'adult' : 'adults'}
-                            {br.children_count > 0 && `, ${br.children_count} ${br.children_count === 1 ? 'child' : 'children'}`}
-                          </span>
+                          <div key={i} className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                            <span className="text-xs font-black text-gray-900 uppercase tracking-tighter">Room {br.room?.room_number || br.room_id}</span>
+                            <div className="w-1 h-1 rounded-full bg-gray-300" />
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                               {br.adults_count} ADL {br.children_count > 0 && `• ${br.children_count} CHD`}
+                            </span>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Payment info */}
-                  {booking.payments && booking.payments.length > 0 && (
-                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
-                      <CreditCard className="w-3 h-3" />
-                      Paid via {booking.payments[0].payment_method} • {booking.payments[0].status}
                     </div>
                   )}
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
     </div>
   );
 }
