@@ -12,7 +12,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        env('FRONTEND_URL', '*'),
+        'https://inntera-u4jo529e2-jaysons-projects-5e0cbb2a.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:5173',
+    ],
 
     'allowed_origins_patterns' => [],
 

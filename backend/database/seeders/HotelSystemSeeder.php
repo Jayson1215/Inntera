@@ -173,8 +173,8 @@ class HotelSystemSeeder extends Seeder
                 ['email' => $hData['email']],
                 array_merge($hData, [
                     'display_id' => 'HTL-' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
-                    'total_rooms' => 100,
-                    'available_rooms' => 100,
+                    'total_rooms' => 30,
+                    'available_rooms' => 30,
                 ])
             );
 
@@ -244,9 +244,9 @@ class HotelSystemSeeder extends Seeder
             // Create Staff for this hotel
             $staffConfigs = [
                 ['role' => 'manager', 'count' => 1],
-                ['role' => 'maintenance', 'count' => 5],
-                ['role' => 'housekeeping', 'count' => 5],
-                ['role' => 'receptionist', 'count' => 3],
+                ['role' => 'maintenance', 'count' => 2],
+                ['role' => 'housekeeping', 'count' => 2],
+                ['role' => 'receptionist', 'count' => 2],
             ];
             
             static $globalStaffCounter = 1;
@@ -275,18 +275,18 @@ class HotelSystemSeeder extends Seeder
                 }
             }
 
-            // Create 100 rooms across 10 floors for each hotel
-            for ($floor = 1; $floor <= 10; $floor++) {
-                $rt = match (true) {
-                    $floor <= 2 => $roomTypes['standard_single'],
-                    $floor <= 4 => $roomTypes['standard_double'],
-                    $floor <= 6 => $roomTypes['deluxe_single'],
-                    $floor <= 8 => $roomTypes['deluxe_double'],
-                    $floor == 9 => $roomTypes['executive_suite'],
+            // Create 30 rooms across 6 floors for each hotel
+            for ($floor = 1; $floor <= 6; $floor++) {
+                $rt = match ($floor) {
+                    1 => $roomTypes['standard_single'],
+                    2 => $roomTypes['standard_double'],
+                    3 => $roomTypes['deluxe_single'],
+                    4 => $roomTypes['deluxe_double'],
+                    5 => $roomTypes['executive_suite'],
                     default => $roomTypes['presidential_suite'],
                 };
 
-                for ($i = 1; $i <= 10; $i++) {
+                for ($i = 1; $i <= 5; $i++) {
                     $roomNo = sprintf('%d%02d', $floor, $i);
                     $floorDisplay = match ($floor) {
                         1 => '1st',
