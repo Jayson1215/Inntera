@@ -155,4 +155,31 @@ export interface User {
   hotel_id?: number;
 }
 
+// Notifications
+export interface NotificationData {
+  type: 'room_booked' | 'booking_confirmed';
+  title: string;
+  message: string;
+  booking_id: number;
+  booking_reference: string;
+  guest_name?: string;
+  guest_email?: string;
+  hotel_name?: string;
+  checkin_date: string;
+  checkout_date: string;
+  total_cost?: number;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  notifiable_type: string;
+  notifiable_id: number;
+  data: NotificationData;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+
 

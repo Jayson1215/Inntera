@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
+import { NotificationBell } from '../components/ui/NotificationBell';
 
 export function StaffLayout() {
   const { user, logout } = useAuth();
@@ -138,7 +139,8 @@ export function StaffLayout() {
           </div>
           
           <div className="flex items-center gap-3">
-             <div className="hidden sm:flex flex-col items-end">
+             <NotificationBell />
+             <div className="hidden sm:flex flex-col items-end pl-2 border-l border-slate-100">
                <span className="text-sm font-black text-gray-900">{user?.name}</span>
                <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Operations Staff</span>
              </div>

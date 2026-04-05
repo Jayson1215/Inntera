@@ -1,17 +1,27 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
 import { Calendar, MapPin, Clock, Search, BedDouble, CreditCard, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { cn } from '../../lib/utils';
 
 export function ClientBookings() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { bookings: contextBookings, hotels } = useBooking();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'all'>('all');
+  const highlightedId = location.state?.highlightedBookingId;
+  const bookingRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const userBookings = contextBookings.filter(b => b.guest_id === user?.id);
+
+  useEffect(() => {
+    if (highlightedId && bookingRefs.current[highlightedId]) {
+      bookingRefs.current[highlightedId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightedId, userBookings]);
 
   const filteredBookings = userBookings.filter(b => {
     if (activeTab === 'upcoming') return ['confirmed', 'pending', 'checked-in'].includes(b.booking_status);
@@ -92,7 +102,11 @@ export function ClientBookings() {
             return (
               <div 
                 key={booking.booking_id} 
-                className="bg-white rounded-3xl border border-gray-200 overflow-hidden hover:border-black transition-all group"
+                ref={el => bookingRefs.current[booking.booking_id] = el}
+                className={cn(
+                  "bg-white rounded-3xl border border-gray-200 overflow-hidden hover:border-black transition-all group",
+                  highlightedId === booking.booking_id && "ring-4 ring-emerald-400 ring-offset-4 shadow-2xl scale-[1.01] border-emerald-500"
+                )}
               >
                 <div className="p-1">
                    <div className={`h-1.5 w-full rounded-t-full ${status.bg} border-b ${status.border}`} />

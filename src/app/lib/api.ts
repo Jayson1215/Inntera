@@ -12,6 +12,7 @@ import {
   Payment,
   Charge,
   Staff,
+  Notification,
 } from '../types';
 import {
   HotelCreateSchema,
@@ -67,15 +68,26 @@ async function apiFetch<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for initial heavy load
+
   try {
+    const storedUser = localStorage.getItem('hotel_user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    
     const response = await fetch(`${API_BASE}${url}`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'X-User-Id': user?.id?.toString() || '',
+        'X-User-Type': user?.role || '',
         ...options.headers,
       },
+      signal: controller.signal,
       ...options,
     });
+    
+    clearTimeout(timeoutId);
 
     const json = await response.json();
 
@@ -381,3 +393,26 @@ export const systemService = {
     return apiFetch('/system/init');
   },
 };
+
+// Notifications
+export const notificationService = {
+  async getAll(): Promise<ApiResponse<{
+    notifications: Notification[];
+    unread_count: number;
+  }>> {
+    return apiFetch('/notifications');
+  },
+
+  async markAsRead(id: string): Promise<ApiResponse<void>> {
+    return apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
+  },
+
+  async markAllAsRead(): Promise<ApiResponse<void>> {
+    return apiFetch('/notifications/mark-all-read', { method: 'PATCH' });
+  },
+
+  async delete(id: string): Promise<ApiResponse<void>> {
+    return apiFetch(`/notifications/${id}`, { method: 'DELETE' });
+  },
+};
+

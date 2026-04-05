@@ -10,6 +10,10 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Notifications\RoomBookedNotification;
+use App\Notifications\BookingConfirmedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class BookingController extends Controller
 {
@@ -206,6 +210,12 @@ class BookingController extends Controller
             'payments',
         ]);
 
+        // Notify admins and staff
+        $staffToNotify = User::whereIn('role', ['admin', 'staff'])->get();
+        if ($staffToNotify->isNotEmpty()) {
+            Notification::send($staffToNotify, new RoomBookedNotification($booking));
+        }
+
         return response()->json(['success' => true, 'data' => $booking], 201);
     }
 
@@ -222,7 +232,15 @@ class BookingController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $oldStatus = $booking->booking_status;
         $booking->update($this->filterUpdateData($validated));
+
+        if ($validated['booking_status'] ?? null === 'confirmed' && $oldStatus !== 'confirmed') {
+            $booking->load(['guest', 'hotel']);
+            if ($booking->guest) {
+                $booking->guest->notify(new BookingConfirmedNotification($booking));
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -262,6 +280,13 @@ class BookingController extends Controller
                 Room::whereIn('room_id', $roomIds)->update(['status' => $roomStatus]);
             }
         });
+
+        if ($newStatus === 'confirmed') {
+            $booking->load(['guest', 'hotel']);
+            if ($booking->guest) {
+                $booking->guest->notify(new BookingConfirmedNotification($booking));
+            }
+        }
 
         return response()->json([
             'success' => true,

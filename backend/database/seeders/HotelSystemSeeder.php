@@ -23,17 +23,23 @@ class HotelSystemSeeder extends Seeder
     public function run(): void
     {
         // ── Users (Admin + Staff) ──────────────────────────────
-        $adminUser = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@inntera.com',
-            'password' => Hash::make('admin123'),
-        ]);
+        $adminUser = User::updateOrCreate(
+            ['email' => 'admin@inntera.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+            ]
+        );
 
-        $staffUser = User::create([
-            'name' => 'Mike Davis',
-            'email' => 'mike.davis@watergate.com',
-            'password' => Hash::make('staff123'),
-        ]);
+        $staffUser = User::updateOrCreate(
+            ['email' => 'staff1@inntera.com'],
+            [
+                'name' => 'Staff Member',
+                'password' => Hash::make('staff123'),
+                'role' => 'staff',
+            ]
+        );
 
         // ── Hotels (Butuan City Philippines) ──────────────────
         $hotelsData = [
@@ -220,12 +226,6 @@ class HotelSystemSeeder extends Seeder
                 }
             }
         }
-
-        // ── User / Admin Account ──────────────────────────────
-        User::updateOrCreate(
-            ['email' => 'admin@inntera.com'],
-            ['name' => 'Admin User', 'password' => Hash::make('admin123'), 'role' => 'admin']
-        );
 
         // ── Guests ─────────────────────────────────────────────
         $guest1 = Guest::updateOrCreate(

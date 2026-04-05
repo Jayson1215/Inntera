@@ -47,79 +47,76 @@ let globalCache: {
   lastFetch: number;
 } | null = null;
 let fetchPromise: Promise<void> | null = null;
-const CACHE_TTL = 30000;
+const CACHE_KEY = 'hotel_system_cache_v2';
 
 export function BookingProvider({ children }: { children: ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>(globalCache?.bookings || []);
-  const [rooms, setRooms] = useState<Room[]>(globalCache?.rooms || []);
-  const [hotels, setHotels] = useState<Hotel[]>(globalCache?.hotels || []);
-  const [guests, setGuests] = useState<Guest[]>(globalCache?.guests || []);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>(globalCache?.roomTypes || []);
-  const [staff, setStaff] = useState<Staff[]>(globalCache?.staff || []);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [cleaningAssignments, setCleaningAssignments] = useState<CleaningAssignment[]>([]);
-  const [isLoading, setIsLoading] = useState(!globalCache);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load from persistent local cache on mount (SWR Pattern)
+  useEffect(() => {
+    const localData = localStorage.getItem(CACHE_KEY);
+    if (localData) {
+      try {
+        const parsed = JSON.parse(localData);
+        setBookings(parsed.bookings || []);
+        setRooms(parsed.rooms || []);
+        setHotels(parsed.hotels || []);
+        setGuests(parsed.guests || []);
+        setRoomTypes(parsed.roomTypes || []);
+        setStaff(parsed.staff || []);
+        setIsLoading(false); // Immediate 1s load
+      } catch (e) {
+        console.warn('Cache corrupted, clearing...');
+        localStorage.removeItem(CACHE_KEY);
+      }
+    }
+  }, []);
 
   const fetchData = useCallback(async (force = false) => {
-    if (!force && globalCache && Date.now() - globalCache.lastFetch < CACHE_TTL) {
-      setBookings(globalCache.bookings);
-      setRooms(globalCache.rooms);
-      setHotels(globalCache.hotels);
-      setGuests(globalCache.guests);
-      setRoomTypes(globalCache.roomTypes);
-      setStaff(globalCache.staff);
-      setIsLoading(false);
-      return;
+    const hasCache = !!localStorage.getItem(CACHE_KEY);
+    
+    // Only show full-screen loader if we have NO cache at all
+    if (!hasCache) {
+        setIsLoading(true);
     }
 
-    if (fetchPromise && !force) {
-      await fetchPromise;
-      if (globalCache) {
-        setBookings(globalCache.bookings);
-        setRooms(globalCache.rooms);
-        setHotels(globalCache.hotels);
-        setGuests(globalCache.guests);
-        setRoomTypes(globalCache.roomTypes);
-        setStaff(globalCache.staff);
+    try {
+      const res = await systemService.init();
+
+      if (res.success && res.data) {
+        const cacheData = {
+          bookings: res.data.bookings || [],
+          rooms: res.data.rooms || [],
+          hotels: res.data.hotels || [],
+          guests: res.data.guests || [],
+          roomTypes: res.data.roomTypes || [],
+          staff: res.data.staff || [],
+          lastFetch: Date.now(),
+        };
+
+        // Update in-memory state
+        setBookings(cacheData.bookings);
+        setRooms(cacheData.rooms);
+        setHotels(cacheData.hotels);
+        setGuests(cacheData.guests);
+        setRoomTypes(cacheData.roomTypes);
+        setStaff(cacheData.staff);
+        
+        // Update persistent cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       }
+    } catch (error) {
+      console.error('Background sync failed:', error);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setIsLoading(true);
-
-    fetchPromise = (async () => {
-      try {
-        const res = await systemService.init();
-
-        if (res.success && res.data) {
-          const newCache = {
-            bookings: res.data.bookings || [],
-            rooms: res.data.rooms || [],
-            hotels: res.data.hotels || [],
-            guests: res.data.guests || [],
-            roomTypes: res.data.roomTypes || [],
-            staff: res.data.staff || [],
-            lastFetch: Date.now(),
-          };
-
-          globalCache = newCache;
-
-          setBookings(newCache.bookings);
-          setRooms(newCache.rooms);
-          setHotels(newCache.hotels);
-          setGuests(newCache.guests);
-          setRoomTypes(newCache.roomTypes);
-          setStaff(newCache.staff);
-        }
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-      } finally {
-        fetchPromise = null;
-      }
-    })();
-
-    await fetchPromise;
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {

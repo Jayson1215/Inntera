@@ -14,9 +14,16 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\SystemController;
+use App\Http\Controllers\NotificationController;
 
 // System Init
 Route::get('/system/init', [SystemController::class, 'init']);
+
+// Notifications
+Route::get('/notifications', [NotificationController::class, 'index']);
+Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
 // Auth
 Route::post('/auth/login', [AuthController::class, 'login']);

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { MobileNav } from '../components/MobileNav';
+import { NotificationBell } from '../components/ui/NotificationBell';
 
 export function ClientLayout() {
   const { user, logout } = useAuth();
@@ -93,6 +94,7 @@ export function ClientLayout() {
               })}
 
               <div className="border-l border-gray-200 pl-4 ml-4 flex items-center gap-3">
+                <NotificationBell />
                 <span className="text-sm font-semibold text-gray-900">{user?.name || 'Guest'}</span>
                 <Button
                   variant="ghost"
@@ -106,8 +108,9 @@ export function ClientLayout() {
             </div>
 
             {/* Mobile Actions */}
-            <div className="flex md:hidden items-center gap-3">
-               <span className="text-sm font-bold text-gray-900 truncate max-w-[100px]">{user?.name?.split(' ')[0] || 'Guest'}</span>
+            <div className="flex md:hidden items-center gap-2">
+               <NotificationBell />
+               <span className="text-sm font-bold text-gray-900 truncate max-w-[80px]">{user?.name?.split(' ')[0] || 'Guest'}</span>
                <Button
                   variant="ghost"
                   size="sm"

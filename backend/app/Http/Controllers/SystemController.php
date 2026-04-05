@@ -18,22 +18,29 @@ class SystemController extends Controller
      */
     public function init(): JsonResponse
     {
+        // Limit to last 100 bookings for faster initial load
         $bookings = Booking::with([
             'guest:id,first_name,last_name,display_id,email',
             'hotel:id,name,city',
-            'bookingRooms.room:room_id,room_number,floor,status',
-            'bookingRooms.room.roomType:room_type_id,name,base_price',
-            'payments:payment_id,booking_id,amount,payment_method,status',
-        ])->orderBy('created_at', 'desc')->get();
+            'bookingRooms.room', // Remove deep select to ensure full room data for the 100 bookings
+            'bookingRooms.room.roomType',
+            'payments',
+        ])
+        ->orderBy('created_at', 'desc')
+        ->limit(100)
+        ->get();
 
-        $rooms = Room::with([
-            'hotel:id,name',
-            'roomType:room_type_id,name,base_price,bed_type',
-        ])->get();
+        // Final, safe Room fetch - all columns
+        $rooms = Room::with(['hotel', 'roomType'])->get();
 
-        $hotels = Hotel::withCount('rooms')->get();
+        $hotels = Hotel::withCount('rooms')
+            ->select('id', 'name', 'address', 'city', 'phone')
+            ->get();
         
-        $guests = Guest::withCount('bookings')->get();
+        $guests = Guest::withCount('bookings')
+            ->orderBy('created_at', 'desc')
+            ->limit(100)
+            ->get();
         
         $roomTypes = RoomType::all();
         
