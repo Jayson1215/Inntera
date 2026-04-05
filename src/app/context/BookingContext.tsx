@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { Booking, Room, Hotel, Guest, RoomType, Staff } from '../types';
-import { bookingService, roomService, hotelService, guestService, roomTypeService, staffService, paymentService } from '../lib/api';
+import { bookingService, roomService, paymentService, systemService } from '../lib/api';
 
 export interface CleaningAssignment {
   room_id: number;
@@ -23,12 +23,11 @@ interface BookingContextType {
   updateRoomStatus: (roomId: number, newStatus: Room['status']) => void;
   assignCleaningTask: (roomId: number, taskType?: 'cleaning' | 'maintenance') => void;
   completeCleaningTask: (roomId: number) => void;
-  getConfirmedCount: () => number;
-  getCheckedInCount: () => number;
-  getCheckedOutCount: () => number;
-  getAvailableRoomsCount: () => number;
-  getOccupiedRoomsCount: () => number;
-  refreshFromStorage: () => void;
+  confirmedCount: number;
+  checkedInCount: number;
+  checkedOutCount: number;
+  availableRoomsCount: number;
+  occupiedRoomsCount: number;
   refreshData: () => Promise<void>;
   createBooking: (data: any) => Promise<{ success: boolean; data?: Booking; error?: string }>;
   confirmCheckIn: (bookingId: number, paymentData?: any, notes?: string) => Promise<{ success: boolean; error?: string }>;
@@ -37,62 +36,126 @@ interface BookingContextType {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
+// Global cache to prevent strict mode or rapid navigation from firing duplicate API requests
+let globalCache: {
+  bookings: Booking[];
+  rooms: Room[];
+  hotels: Hotel[];
+  guests: Guest[];
+  roomTypes: RoomType[];
+  staff: Staff[];
+  lastFetch: number;
+} | null = null;
+let fetchPromise: Promise<void> | null = null;
+const CACHE_TTL = 30000;
+
 export function BookingProvider({ children }: { children: ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [hotels, setHotels] = useState<Hotel[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>(globalCache?.bookings || []);
+  const [rooms, setRooms] = useState<Room[]>(globalCache?.rooms || []);
+  const [hotels, setHotels] = useState<Hotel[]>(globalCache?.hotels || []);
+  const [guests, setGuests] = useState<Guest[]>(globalCache?.guests || []);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>(globalCache?.roomTypes || []);
+  const [staff, setStaff] = useState<Staff[]>(globalCache?.staff || []);
   const [cleaningAssignments, setCleaningAssignments] = useState<CleaningAssignment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!globalCache);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [bookingsRes, roomsRes, hotelsRes, guestsRes, roomTypesRes, staffRes] = await Promise.all([
-        bookingService.getAll(),
-        roomService.getBy(),
-        hotelService.getAll(),
-        guestService.getAll(),
-        roomTypeService.getBy(),
-        staffService.getAll(),
-      ]);
-
-      if (bookingsRes.success && bookingsRes.data) {
-        setBookings(bookingsRes.data);
-      }
-      if (roomsRes.success && roomsRes.data) {
-        setRooms(roomsRes.data);
-      }
-      if (hotelsRes.success && hotelsRes.data) {
-        setHotels(hotelsRes.data);
-      }
-      if (guestsRes.success && guestsRes.data) {
-        setGuests(guestsRes.data);
-      }
-      if (roomTypesRes.success && roomTypesRes.data) {
-        setRoomTypes(roomTypesRes.data);
-      }
-      if (staffRes.success && staffRes.data) {
-        setStaff(staffRes.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
+  const fetchData = useCallback(async (force = false) => {
+    if (!force && globalCache && Date.now() - globalCache.lastFetch < CACHE_TTL) {
+      setBookings(globalCache.bookings);
+      setRooms(globalCache.rooms);
+      setHotels(globalCache.hotels);
+      setGuests(globalCache.guests);
+      setRoomTypes(globalCache.roomTypes);
+      setStaff(globalCache.staff);
       setIsLoading(false);
+      return;
     }
+
+    if (fetchPromise && !force) {
+      await fetchPromise;
+      if (globalCache) {
+        setBookings(globalCache.bookings);
+        setRooms(globalCache.rooms);
+        setHotels(globalCache.hotels);
+        setGuests(globalCache.guests);
+        setRoomTypes(globalCache.roomTypes);
+        setStaff(globalCache.staff);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    fetchPromise = (async () => {
+      try {
+        const res = await systemService.init();
+
+        if (res.success && res.data) {
+          const newCache = {
+            bookings: res.data.bookings || [],
+            rooms: res.data.rooms || [],
+            hotels: res.data.hotels || [],
+            guests: res.data.guests || [],
+            roomTypes: res.data.roomTypes || [],
+            staff: res.data.staff || [],
+            lastFetch: Date.now(),
+          };
+
+          globalCache = newCache;
+
+          setBookings(newCache.bookings);
+          setRooms(newCache.rooms);
+          setHotels(newCache.hotels);
+          setGuests(newCache.guests);
+          setRoomTypes(newCache.roomTypes);
+          setStaff(newCache.staff);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        fetchPromise = null;
+      }
+    })();
+
+    await fetchPromise;
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Memoized computed counts — recalculate only when source data changes
+  const confirmedCount = useMemo(
+    () => bookings.filter(b => b.booking_status === 'confirmed').length,
+    [bookings]
+  );
+
+  const checkedInCount = useMemo(
+    () => bookings.filter(b => b.booking_status === 'checked-in').length,
+    [bookings]
+  );
+
+  const checkedOutCount = useMemo(
+    () => bookings.filter(b => b.booking_status === 'checked-out').length,
+    [bookings]
+  );
+
+  const availableRoomsCount = useMemo(
+    () => rooms.filter(r => r.status === 'available').length,
+    [rooms]
+  );
+
+  const occupiedRoomsCount = useMemo(
+    () => rooms.filter(r => r.status === 'occupied').length,
+    [rooms]
+  );
+
   const createBooking = useCallback(async (data: any) => {
     try {
       const response = await bookingService.create(data);
       if (response.success && response.data) {
-        // Full refresh to get the new booking with all relations (hotel, rooms, payments)
         await fetchData();
         return { success: true, data: response.data };
       }
@@ -110,31 +173,33 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const confirmCheckIn = useCallback(async (bookingId: number, paymentData?: any, notes?: string) => {
     setIsLoading(true);
     try {
-      // 1. Update Booking Status to checked-in
       const statusRes = await bookingService.updateStatus(bookingId, 'checked-in');
 
       if (!statusRes.success) {
         return { success: false, error: statusRes.error || 'Failed to update booking status' };
       }
 
-      // 2. If notes provided, update them
+      // Update notes and payment in parallel if both provided
+      const promises: Promise<any>[] = [];
+
       if (notes) {
-        await bookingService.update(bookingId, { notes } as any);
+        promises.push(bookingService.update(bookingId, { notes } as any));
       }
 
-      // 3. If payment data provided, create a payment record
       if (paymentData) {
-        await paymentService.create({
+        promises.push(paymentService.create({
           booking_id: bookingId,
           ...paymentData,
           status: 'completed',
           payment_date: new Date().toISOString(),
-        });
+        }));
       }
 
-      // 4. Refresh all relevant data to ensure UI is in sync
-      await fetchData();
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
 
+      await fetchData();
       return { success: true };
     } catch (error) {
       console.error('Check-in error:', error);
@@ -154,10 +219,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       )
     );
 
-    // Call API
     const response = await bookingService.updateStatus(bookingId, newStatus);
     if (response.success) {
-      // Refresh rooms since booking status changes may affect room status
       const roomsRes = await roomService.getBy();
       if (roomsRes.success && roomsRes.data) {
         setRooms(roomsRes.data);
@@ -181,11 +244,10 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     const room = rooms.find(r => r.room_id === roomId);
     if (!room) return;
 
-    // Find available staff for this hotel based on the requested task type
     const availableStaff = staff.find(s => {
       const r = (s.role || (s as any).position || '').toLowerCase();
-      
-      const roleMatch = taskType === 'cleaning' 
+
+      const roleMatch = taskType === 'cleaning'
         ? (r === 'housekeeping' || r === 'cleaner')
         : (r === 'maintenance');
 
@@ -216,7 +278,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
     await roomService.updateStatus(roomId, newStatus);
 
-    // Auto-assign tasks dynamically based on status
     if (newStatus === 'cleaning' || newStatus === 'maintenance') {
       assignCleaningTask(roomId, newStatus);
     }
@@ -231,37 +292,12 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       )
     );
 
-    // Set room status back to available
     await updateRoomStatus(roomId, 'available');
   }, [updateRoomStatus]);
 
-  const refreshFromStorage = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
   const refreshData = useCallback(async () => {
-    await fetchData();
+    await fetchData(true);
   }, [fetchData]);
-
-  const getConfirmedCount = useCallback(() => {
-    return bookings.filter(b => b.booking_status === 'confirmed').length;
-  }, [bookings]);
-
-  const getCheckedInCount = useCallback(() => {
-    return bookings.filter(b => b.booking_status === 'checked-in').length;
-  }, [bookings]);
-
-  const getCheckedOutCount = useCallback(() => {
-    return bookings.filter(b => b.booking_status === 'checked-out').length;
-  }, [bookings]);
-
-  const getAvailableRoomsCount = useCallback(() => {
-    return rooms.filter(r => r.status === 'available').length;
-  }, [rooms]);
-
-  const getOccupiedRoomsCount = useCallback(() => {
-    return rooms.filter(r => r.status === 'occupied').length;
-  }, [rooms]);
 
   const value: BookingContextType = {
     bookings,
@@ -276,12 +312,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     updateRoomStatus,
     assignCleaningTask,
     completeCleaningTask,
-    getConfirmedCount,
-    getCheckedInCount,
-    getCheckedOutCount,
-    getAvailableRoomsCount,
-    getOccupiedRoomsCount,
-    refreshFromStorage,
+    confirmedCount,
+    checkedInCount,
+    checkedOutCount,
+    availableRoomsCount,
+    occupiedRoomsCount,
     refreshData,
     createBooking,
     confirmCheckIn,

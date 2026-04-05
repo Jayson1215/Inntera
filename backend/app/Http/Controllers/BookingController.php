@@ -2,18 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\FiltersFillableData;
 use App\Models\Booking;
 use App\Models\BookingRoom;
 use App\Models\Room;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
+    use FiltersFillableData;
+
+    /**
+     * List bookings with selective eager loading.
+     */
     public function index(Request $request): JsonResponse
     {
-        $query = Booking::with(['guest', 'hotel', 'bookingRooms.room.roomType', 'payments']);
+        $query = Booking::with([
+            'guest:id,first_name,last_name,display_id,email',
+            'hotel:id,name,city',
+            'bookingRooms.room:room_id,room_number,floor,status',
+            'bookingRooms.room.roomType:room_type_id,name,base_price',
+            'payments:payment_id,booking_id,amount,payment_method,status',
+        ]);
 
         if ($request->has('hotel_id')) {
             $query->where('hotel_id', $request->hotel_id);
@@ -32,13 +45,28 @@ class BookingController extends Controller
         return response()->json(['success' => true, 'data' => $bookings]);
     }
 
+    /**
+     * Show a single booking with full details.
+     */
     public function show(Booking $booking): JsonResponse
     {
-        $booking->load(['guest', 'hotel', 'bookingRooms.room.roomType', 'payments', 'charges']);
+        $booking->load([
+            'guest:id,first_name,last_name,display_id,email,phone',
+            'hotel:id,name,city,address',
+            'bookingRooms.room.roomType',
+            'payments',
+            'charges',
+        ]);
 
         return response()->json(['success' => true, 'data' => $booking]);
     }
 
+    /**
+     * Create a new booking with rooms and payment.
+     *
+     * Optimized: Uses DB transaction and batch operations
+     * instead of individual queries per room.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -60,86 +88,130 @@ class BookingController extends Controller
             'payment.transaction_id' => 'nullable|string',
         ]);
 
-        $booking = Booking::create([
-            'booking_reference' => Booking::generateReference(),
-            'guest_id' => $validated['guest_id'],
-            'hotel_id' => $validated['hotel_id'],
-            'checkin_date' => $validated['checkin_date'],
-            'checkout_date' => $validated['checkout_date'],
-            'total_cost' => $validated['total_cost'],
-            'notes' => $validated['notes'] ?? null,
-            'booking_status' => 'pending',
-        ]);
+        $booking = DB::transaction(function () use ($validated) {
+            $booking = Booking::create([
+                'booking_reference' => Booking::generateReference(),
+                'guest_id' => $validated['guest_id'],
+                'hotel_id' => $validated['hotel_id'],
+                'checkin_date' => $validated['checkin_date'],
+                'checkout_date' => $validated['checkout_date'],
+                'total_cost' => $validated['total_cost'],
+                'notes' => $validated['notes'] ?? null,
+                'booking_status' => 'pending',
+            ]);
 
-        // Create booking rooms with automatic assignment
-        if (!empty($validated['rooms'])) {
-            foreach ($validated['rooms'] as $roomData) {
-                $targetRoomId = $roomData['room_id'] ?? null;
+            // Process rooms with batch operations
+            if (!empty($validated['rooms'])) {
+                $requestedRoomIds = array_filter(
+                    array_column($validated['rooms'], 'room_id')
+                );
 
-                // Automatic validation/assignment if room_id is missing or busy
-                $checkRoom = Room::where('room_id', $targetRoomId)->where('status', 'available')->first();
+                // Single query: load all requested rooms with availability
+                $availableRooms = Room::whereIn('room_id', $requestedRoomIds)
+                    ->where('status', 'available')
+                    ->pluck('room_id')
+                    ->toArray();
 
-                if (!$checkRoom) {
-                    // Fallback: Find any available room of the same type in this hotel
-                    $requestedRoom = Room::find($targetRoomId);
-                    $roomTypeId = $requestedRoom ? $requestedRoom->room_type_id : 1; // Default fallback
+                // Single query: load room types for fallback assignments
+                $unavailableRoomIds = array_diff($requestedRoomIds, $availableRooms);
+                $fallbackRooms = [];
 
-                    $newRoom = Room::where('hotel_id', $validated['hotel_id'])
-                        ->where('room_type_id', $roomTypeId)
+                if (!empty($unavailableRoomIds)) {
+                    $roomTypeMap = Room::whereIn('room_id', $unavailableRoomIds)
+                        ->pluck('room_type_id', 'room_id')
+                        ->toArray();
+
+                    $fallbackRooms = Room::where('hotel_id', $validated['hotel_id'])
+                        ->whereIn('room_type_id', array_values($roomTypeMap))
                         ->where('status', 'available')
-                        ->first();
-                    
-                    if ($newRoom) {
-                        $targetRoomId = $newRoom->room_id;
+                        ->whereNotIn('room_id', $availableRooms)
+                        ->get()
+                        ->groupBy('room_type_id');
+                }
+
+                $bookingRoomRecords = [];
+                $roomIdsToReserve = [];
+
+                foreach ($validated['rooms'] as $roomData) {
+                    $targetRoomId = $roomData['room_id'] ?? null;
+
+                    // Use available room or find fallback
+                    if (!in_array($targetRoomId, $availableRooms)) {
+                        $requestedRoom = Room::find($targetRoomId);
+                        $roomTypeId = $requestedRoom?->room_type_id ?? 1;
+
+                        $fallbackRoom = ($fallbackRooms[$roomTypeId] ?? collect())->shift();
+                        $targetRoomId = $fallbackRoom?->room_id;
+                    }
+
+                    if ($targetRoomId) {
+                        $bookingRoomRecords[] = [
+                            'booking_id' => $booking->booking_id,
+                            'room_id' => $targetRoomId,
+                            'adults_count' => $roomData['adults_count'] ?? 1,
+                            'children_count' => $roomData['children_count'] ?? 0,
+                            'rate' => $roomData['rate'] ?? 0,
+                            'number_of_nights' => $roomData['number_of_nights'] ?? 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        $roomIdsToReserve[] = $targetRoomId;
                     }
                 }
 
-                if ($targetRoomId) {
-                    BookingRoom::create([
-                        'booking_id' => $booking->booking_id,
-                        'room_id' => $targetRoomId,
-                        'adults_count' => $roomData['adults_count'] ?? 1,
-                        'children_count' => $roomData['children_count'] ?? 0,
-                        'rate' => $roomData['rate'] ?? 0,
-                        'number_of_nights' => $roomData['number_of_nights'] ?? 1,
-                    ]);
+                // Batch insert booking rooms
+                if (!empty($bookingRoomRecords)) {
+                    BookingRoom::insert($bookingRoomRecords);
+                }
 
-                    // Update room status to reserved
-                    Room::where('room_id', $targetRoomId)->update(['status' => 'reserved']);
+                // Batch update room statuses
+                if (!empty($roomIdsToReserve)) {
+                    Room::whereIn('room_id', $roomIdsToReserve)
+                        ->update(['status' => 'reserved']);
                 }
             }
-        }
 
-        // Create payment if provided
-        if (!empty($validated['payment'])) {
-            $methodMap = [
-                'Pay at Hotel (Card)' => 'credit_card',
-                'GCash' => 'gcash',
-                'PayPal' => 'paypal',
-                'PayMaya' => 'paymaya',
-                'Debit Card' => 'debit_card',
-                'Credit Card' => 'credit_card',
-                'Bank Transfer' => 'bank_transfer',
-            ];
+            // Create payment if provided
+            if (!empty($validated['payment'])) {
+                $methodMap = [
+                    'Pay at Hotel (Card)' => 'credit_card',
+                    'GCash' => 'gcash',
+                    'PayPal' => 'paypal',
+                    'PayMaya' => 'paymaya',
+                    'Debit Card' => 'debit_card',
+                    'Credit Card' => 'credit_card',
+                    'Bank Transfer' => 'bank_transfer',
+                ];
 
-            $method = $validated['payment']['method'];
-            $dbMethod = $methodMap[$method] ?? 'credit_card';
+                $method = $validated['payment']['method'];
+                $dbMethod = $methodMap[$method] ?? 'credit_card';
 
-            Payment::create([
-                'booking_id' => $booking->booking_id,
-                'amount' => $validated['payment']['amount'],
-                'payment_method' => $dbMethod,
-                'status' => 'pending',
-                'transaction_id' => $validated['payment']['transaction_id'] ?? null,
-                'payment_date' => now(),
-            ]);
-        }
+                Payment::create([
+                    'booking_id' => $booking->booking_id,
+                    'amount' => $validated['payment']['amount'],
+                    'payment_method' => $dbMethod,
+                    'status' => 'pending',
+                    'transaction_id' => $validated['payment']['transaction_id'] ?? null,
+                    'payment_date' => now(),
+                ]);
+            }
 
-        $booking->load(['guest', 'hotel', 'bookingRooms.room.roomType', 'payments']);
+            return $booking;
+        });
+
+        $booking->load([
+            'guest:id,first_name,last_name,display_id',
+            'hotel:id,name',
+            'bookingRooms.room.roomType',
+            'payments',
+        ]);
 
         return response()->json(['success' => true, 'data' => $booking], 201);
     }
 
+    /**
+     * Update a booking.
+     */
     public function update(Request $request, Booking $booking): JsonResponse
     {
         $validated = $request->validate([
@@ -150,16 +222,17 @@ class BookingController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Filter out null/empty values to avoid updating with undefined array keys
-        $updateData = array_filter($validated, function($value) {
-            return $value !== null && $value !== '';
-        });
+        $booking->update($this->filterUpdateData($validated));
 
-        $booking->update($updateData);
-
-        return response()->json(['success' => true, 'data' => $booking->fresh()->load(['guest', 'hotel', 'bookingRooms.room'])]);
+        return response()->json([
+            'success' => true,
+            'data' => $booking->refresh()->load(['guest', 'hotel', 'bookingRooms.room']),
+        ]);
     }
 
+    /**
+     * Update booking status and sync room statuses.
+     */
     public function updateStatus(Request $request, Booking $booking): JsonResponse
     {
         $validated = $request->validate([
@@ -168,19 +241,31 @@ class BookingController extends Controller
 
         $newStatus = $validated['booking_status'];
 
-        $booking->update(['booking_status' => $newStatus]);
+        DB::transaction(function () use ($booking, $newStatus) {
+            $booking->update(['booking_status' => $newStatus]);
 
-        // Update room statuses based on booking status change
-        $roomIds = $booking->bookingRooms->pluck('room_id');
+            // Batch update room statuses based on booking status
+            $roomIds = $booking->bookingRooms()->pluck('room_id');
 
-        if ($newStatus === 'checked-in' || $newStatus === 'confirmed') {
-            Room::whereIn('room_id', $roomIds)->update(['status' => 'occupied']);
-        } elseif ($newStatus === 'checked-out' || $newStatus === 'cancelled') {
-            Room::whereIn('room_id', $roomIds)->update(['status' => 'available']);
-        } elseif ($newStatus === 'pending') {
-            Room::whereIn('room_id', $roomIds)->update(['status' => 'reserved']);
-        }
+            if ($roomIds->isEmpty()) {
+                return;
+            }
 
-        return response()->json(['success' => true, 'data' => $booking->fresh()->load(['guest', 'hotel', 'bookingRooms.room'])]);
+            $roomStatus = match ($newStatus) {
+                'checked-in', 'confirmed' => 'occupied',
+                'checked-out', 'cancelled' => 'available',
+                'pending' => 'reserved',
+                default => null,
+            };
+
+            if ($roomStatus) {
+                Room::whereIn('room_id', $roomIds)->update(['status' => $roomStatus]);
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $booking->refresh()->load(['guest', 'hotel', 'bookingRooms.room']),
+        ]);
     }
 }

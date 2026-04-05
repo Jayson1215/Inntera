@@ -14,6 +14,12 @@ class Staff extends Model
 
     protected $appends = ['role', 'name'];
 
+    /**
+     * Auto-eager-load `user` to prevent N+1 queries
+     * triggered by the `name` accessor during serialization.
+     */
+    protected $with = ['user'];
+
     protected $fillable = [
         'display_id',
         'user_id',

@@ -44,7 +44,7 @@ export const router = createBrowserRouter([
       { index: true, element: <BookingProvider><HomePage /></BookingProvider> },
       { path: 'login', Component: LoginPage },
       { path: 'signup', Component: SignUpPage },
-      
+
       // Admin routes
       {
         path: 'admin',

@@ -2,24 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\FiltersFillableData;
 use App\Models\Rate;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class RateController extends Controller
 {
+    use FiltersFillableData;
+
+    /**
+     * List rates with selective eager loading.
+     */
     public function index(Request $request): JsonResponse
     {
-        $query = Rate::with('roomType.hotel');
+        $query = Rate::with('roomType:room_type_id,hotel_id,name');
 
         if ($request->has('room_type_id')) {
             $query->where('room_type_id', $request->room_type_id);
         }
 
         if ($request->has('hotel_id')) {
-            $query->whereHas('roomType', function ($q) use ($request) {
-                $q->where('hotel_id', $request->hotel_id);
-            });
+            $query->whereHas('roomType', fn ($q) => $q->where('hotel_id', $request->hotel_id));
         }
 
         $rates = $query->get();
@@ -27,13 +31,19 @@ class RateController extends Controller
         return response()->json(['success' => true, 'data' => $rates]);
     }
 
+    /**
+     * Show a single rate.
+     */
     public function show(Rate $rate): JsonResponse
     {
-        $rate->load('roomType.hotel');
+        $rate->load('roomType:room_type_id,hotel_id,name');
 
         return response()->json(['success' => true, 'data' => $rate]);
     }
 
+    /**
+     * Create a new rate.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -49,6 +59,9 @@ class RateController extends Controller
         return response()->json(['success' => true, 'data' => $rate], 201);
     }
 
+    /**
+     * Update a rate.
+     */
     public function update(Request $request, Rate $rate): JsonResponse
     {
         $validated = $request->validate([
@@ -59,12 +72,8 @@ class RateController extends Controller
             'season' => 'sometimes|in:low,regular,high,peak',
         ]);
 
-        $updateData = array_filter($validated, function($value) {
-            return $value !== null && $value !== '';
-        });
+        $rate->update($this->filterUpdateData($validated));
 
-        $rate->update($updateData);
-
-        return response()->json(['success' => true, 'data' => $rate->fresh()]);
+        return response()->json(['success' => true, 'data' => $rate->refresh()]);
     }
 }

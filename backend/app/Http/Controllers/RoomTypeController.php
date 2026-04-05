@@ -2,15 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\FiltersFillableData;
 use App\Models\RoomType;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class RoomTypeController extends Controller
 {
+    use FiltersFillableData;
+
+    /**
+     * List room types with selective eager loading.
+     */
     public function index(Request $request): JsonResponse
     {
-        $query = RoomType::with(['hotel', 'amenities', 'rates']);
+        $query = RoomType::with([
+            'hotel:id,name',
+            'amenities:amenity_id,name',
+            'rates:rate_id,room_type_id,price,start_date,end_date,season',
+        ]);
 
         if ($request->has('hotel_id')) {
             $query->where('hotel_id', $request->hotel_id);
@@ -21,6 +31,9 @@ class RoomTypeController extends Controller
         return response()->json(['success' => true, 'data' => $roomTypes]);
     }
 
+    /**
+     * Show a single room type with full details.
+     */
     public function show(RoomType $roomType): JsonResponse
     {
         $roomType->load(['hotel', 'amenities', 'rates', 'rooms']);
@@ -28,6 +41,9 @@ class RoomTypeController extends Controller
         return response()->json(['success' => true, 'data' => $roomType]);
     }
 
+    /**
+     * Create a new room type.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -41,6 +57,9 @@ class RoomTypeController extends Controller
         return response()->json(['success' => true, 'data' => $roomType], 201);
     }
 
+    /**
+     * Update a room type.
+     */
     public function update(Request $request, RoomType $roomType): JsonResponse
     {
         $validated = $request->validate([
@@ -52,12 +71,8 @@ class RoomTypeController extends Controller
             'status' => 'sometimes|in:active,inactive',
         ]);
 
-        $updateData = array_filter($validated, function($value) {
-            return $value !== null && $value !== '';
-        });
+        $roomType->update($this->filterUpdateData($validated));
 
-        $roomType->update($updateData);
-
-        return response()->json(['success' => true, 'data' => $roomType->fresh()]);
+        return response()->json(['success' => true, 'data' => $roomType->refresh()]);
     }
 }

@@ -7,7 +7,7 @@ import { useBooking } from '../../context/BookingContext';
 import { toast } from 'sonner';
 
 export function StaffCheckin() {
-  const { bookings, rooms, guests, hotels, isLoading, confirmCheckIn, updateBookingStatus, refreshFromStorage } = useBooking();
+  const { bookings, rooms, guests, hotels, isLoading, confirmCheckIn, updateBookingStatus, refreshData } = useBooking();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -17,8 +17,8 @@ export function StaffCheckin() {
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
 
   useEffect(() => {
-    refreshFromStorage();
-  }, [refreshFromStorage]);
+    refreshData();
+  }, [refreshData]);
 
   if (isLoading) {
     return (

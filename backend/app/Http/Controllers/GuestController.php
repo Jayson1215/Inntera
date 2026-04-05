@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\FiltersFillableData;
 use App\Models\Guest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class GuestController extends Controller
 {
+    use FiltersFillableData;
+
+    /**
+     * List guests with booking count.
+     */
     public function index(Request $request): JsonResponse
     {
         $query = Guest::query();
@@ -26,13 +32,22 @@ class GuestController extends Controller
         return response()->json(['success' => true, 'data' => $guests]);
     }
 
+    /**
+     * Show a single guest with booking history.
+     */
     public function show(Guest $guest): JsonResponse
     {
-        $guest->load(['bookings.hotel', 'bookings.bookingRooms.room']);
+        $guest->load([
+            'bookings.hotel:id,name',
+            'bookings.bookingRooms.room:room_id,room_number,floor',
+        ]);
 
         return response()->json(['success' => true, 'data' => $guest]);
     }
 
+    /**
+     * Create a new guest.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -50,6 +65,9 @@ class GuestController extends Controller
         return response()->json(['success' => true, 'data' => $guest], 201);
     }
 
+    /**
+     * Update a guest.
+     */
     public function update(Request $request, Guest $guest): JsonResponse
     {
         $validated = $request->validate([
@@ -62,12 +80,8 @@ class GuestController extends Controller
             'loyalty_member_id' => 'nullable|string|max:255',
         ]);
 
-        $updateData = array_filter($validated, function($value) {
-            return $value !== null && $value !== '';
-        });
+        $guest->update($this->filterUpdateData($validated));
 
-        $guest->update($updateData);
-
-        return response()->json(['success' => true, 'data' => $guest->fresh()]);
+        return response()->json(['success' => true, 'data' => $guest->refresh()]);
     }
 }

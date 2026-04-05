@@ -16,11 +16,42 @@ import {
 import {
   HotelCreateSchema,
   RoomCreateSchema,
-  BookingCreateSchema,
   GuestCreateSchema,
   RateCreateSchema,
 } from '../validations';
 import { z } from 'zod';
+
+// Auth response shape
+export interface AuthUser {
+  email: string;
+  role: 'admin' | 'staff' | 'guest';
+  id: number;
+  display_id: string;
+  name: string;
+  hotel_id: number | null;
+}
+
+// Dashboard stats shape
+export interface DashboardStats {
+  hotels: number;
+  rooms: {
+    total: number;
+    available: number;
+    occupied: number;
+    maintenance: number;
+    reserved: number;
+  };
+  guests: number;
+  bookings: {
+    total: number;
+    pending: number;
+    confirmed: number;
+    checked_in: number;
+    checked_out: number;
+    cancelled: number;
+  };
+  recent_bookings: Booking[];
+}
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -145,7 +176,7 @@ export const bookingService = {
     return apiFetch<Booking>(`/bookings/${id}`);
   },
 
-  async create(data: any): Promise<ApiResponse<Booking>> {
+  async create(data: Record<string, unknown>): Promise<ApiResponse<Booking>> {
     return apiFetch<Booking>('/bookings', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -309,8 +340,8 @@ export const chargeService = {
 
 // Auth
 export const authService = {
-  async login(email: string, password: string): Promise<ApiResponse<any>> {
-    return apiFetch<any>('/auth/login', {
+  async login(email: string, password: string): Promise<ApiResponse<AuthUser>> {
+    return apiFetch<AuthUser>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -318,11 +349,12 @@ export const authService = {
 
   async signup(data: {
     first_name: string;
+    middle_name?: string;
     last_name: string;
     email: string;
     password: string;
-  }): Promise<ApiResponse<any>> {
-    return apiFetch<any>('/auth/signup', {
+  }): Promise<ApiResponse<AuthUser>> {
+    return apiFetch<AuthUser>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -331,7 +363,21 @@ export const authService = {
 
 // Dashboard
 export const dashboardService = {
-  async getStats(): Promise<ApiResponse<any>> {
-    return apiFetch<any>('/dashboard/stats');
+  async getStats(): Promise<ApiResponse<DashboardStats>> {
+    return apiFetch<DashboardStats>('/dashboard/stats');
+  },
+};
+
+// System Init
+export const systemService = {
+  async init(): Promise<ApiResponse<{
+    bookings: Booking[];
+    rooms: Room[];
+    hotels: Hotel[];
+    guests: Guest[];
+    roomTypes: RoomType[];
+    staff: Staff[];
+  }>> {
+    return apiFetch('/system/init');
   },
 };

@@ -7,12 +7,12 @@ import { Room } from '../../types';
 import { toast } from 'sonner';
 
 export function StaffRooms() {
-  const { rooms, hotels, roomTypes, isLoading, updateRoomStatus, refreshFromStorage } = useBooking();
+  const { rooms, hotels, roomTypes, isLoading, updateRoomStatus, refreshData } = useBooking();
   const [selectedHotelId, setSelectedHotelId] = useState<string>("all");
 
   useEffect(() => {
-    refreshFromStorage();
-  }, [refreshFromStorage]);
+    refreshData();
+  }, [refreshData]);
 
   if (isLoading) {
     return (

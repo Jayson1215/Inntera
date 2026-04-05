@@ -8,9 +8,12 @@ use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
 {
+    /**
+     * List payments with selective eager loading.
+     */
     public function index(Request $request): JsonResponse
     {
-        $query = Payment::with('booking.guest');
+        $query = Payment::with('booking:booking_id,guest_id,booking_reference');
 
         if ($request->has('booking_id')) {
             $query->where('booking_id', $request->booking_id);
@@ -21,6 +24,9 @@ class PaymentController extends Controller
         return response()->json(['success' => true, 'data' => $payments]);
     }
 
+    /**
+     * Create a new payment.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([

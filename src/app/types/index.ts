@@ -11,17 +11,6 @@ export interface Hotel {
   created_at: string;
 }
 
-// Managers
-export interface Manager {
-  manager_id: number;
-  hotel_id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  role: string;
-  hired_at: string;
-}
 
 // Staff
 export interface Staff {
@@ -166,11 +155,4 @@ export interface User {
   hotel_id?: number;
 }
 
-// API Response Types
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
 

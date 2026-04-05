@@ -8,9 +8,12 @@ use Illuminate\Http\JsonResponse;
 
 class ChargeController extends Controller
 {
+    /**
+     * List charges with selective eager loading.
+     */
     public function index(Request $request): JsonResponse
     {
-        $query = Charge::with('booking.guest');
+        $query = Charge::with('booking:booking_id,guest_id,booking_reference');
 
         if ($request->has('booking_id')) {
             $query->where('booking_id', $request->booking_id);
@@ -21,6 +24,9 @@ class ChargeController extends Controller
         return response()->json(['success' => true, 'data' => $charges]);
     }
 
+    /**
+     * Create a new charge.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([

@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Badge } from '../../components/ui/badge';
 import { BookOpen, CheckCircle, LogOut, Calendar, Loader2, Search } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { Guest, Booking } from '../../types';
 
 export function StaffBookings() {
-  const { bookings, guests, hotels, isLoading, refreshFromStorage } = useBooking();
+  const { bookings, guests, hotels, isLoading, refreshData } = useBooking();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    refreshFromStorage();
-  }, [refreshFromStorage]);
+    refreshData();
+  }, [refreshData]);
 
   if (isLoading) {
     return (

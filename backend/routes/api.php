@@ -13,6 +13,10 @@ use App\Http\Controllers\AmenityController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ChargeController;
+use App\Http\Controllers\SystemController;
+
+// System Init
+Route::get('/system/init', [SystemController::class, 'init']);
 
 // Auth
 Route::post('/auth/login', [AuthController::class, 'login']);

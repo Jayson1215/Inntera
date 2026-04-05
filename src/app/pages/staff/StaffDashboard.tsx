@@ -1,16 +1,14 @@
 import { useEffect } from 'react';
-import { Card, CardContent } from '../../components/ui/card';
-import { Calendar, BedDouble, CheckCircle, Clock, Loader2, Sparkles, Users, Building2 } from 'lucide-react';
+import { Calendar, BedDouble, CheckCircle, Clock, Sparkles } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { Guest } from '../../types';
 
 export function StaffDashboard() {
-  const { bookings, rooms, guests, hotels, cleaningAssignments, isLoading, refreshFromStorage } = useBooking();
-  const { user } = { user: null as any }; // placeholder
+  const { bookings, rooms, guests, hotels, cleaningAssignments, isLoading, refreshData } = useBooking();
 
   useEffect(() => {
-    refreshFromStorage();
-  }, [refreshFromStorage]);
+    refreshData();
+  }, [refreshData]);
 
   if (isLoading) {
     return (

@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\FiltersFillableData;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class HotelController extends Controller
 {
+    use FiltersFillableData;
+
+    /**
+     * List hotels with counts and room types.
+     */
     public function index(Request $request): JsonResponse
     {
         $query = Hotel::query();
@@ -16,20 +22,36 @@ class HotelController extends Controller
             $query->where('city', 'like', '%' . $request->city . '%');
         }
 
-        $hotels = $query->withCount(['rooms', 'bookings'])
-            ->with('roomTypes')
+        $hotels = $query
+            ->withCount(['rooms', 'bookings'])
+            ->with('roomTypes:room_type_id,hotel_id,name,base_price,max_occupancy,bed_type')
             ->get();
 
         return response()->json(['success' => true, 'data' => $hotels]);
     }
 
+    /**
+     * Show a single hotel with full details.
+     *
+     * Optimized: Removed redundant `rooms.roomType` eager load —
+     * room type data is already available via `roomTypes` relation.
+     * Clients can join rooms to their types using room_type_id.
+     */
     public function show(Hotel $hotel): JsonResponse
     {
-        $hotel->load(['roomTypes.amenities', 'roomTypes.rates', 'rooms.roomType', 'staff.user']);
+        $hotel->load([
+            'roomTypes.amenities',
+            'roomTypes.rates',
+            'rooms:room_id,hotel_id,room_type_id,room_number,floor,status,notes',
+            'staff.user:id,name,email',
+        ]);
 
         return response()->json(['success' => true, 'data' => $hotel]);
     }
 
+    /**
+     * Create a new hotel.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -52,6 +74,9 @@ class HotelController extends Controller
         return response()->json(['success' => true, 'data' => $hotel], 201);
     }
 
+    /**
+     * Update a hotel.
+     */
     public function update(Request $request, Hotel $hotel): JsonResponse
     {
         $validated = $request->validate([
@@ -71,15 +96,14 @@ class HotelController extends Controller
             'available_rooms' => 'sometimes|integer|min:0',
         ]);
 
-        $updateData = array_filter($validated, function($value) {
-            return $value !== null && $value !== '';
-        });
+        $hotel->update($this->filterUpdateData($validated));
 
-        $hotel->update($updateData);
-
-        return response()->json(['success' => true, 'data' => $hotel->fresh()]);
+        return response()->json(['success' => true, 'data' => $hotel->refresh()]);
     }
 
+    /**
+     * Delete a hotel.
+     */
     public function destroy(Hotel $hotel): JsonResponse
     {
         $hotel->delete();
