@@ -39,7 +39,7 @@ class HotelSystemSeeder extends Seeder
         $hotelsData = [
             [
                 'name' => 'Watergate Boutique Hotel',
-                'description' => 'A well-rated 3-4 star boutique hotel featuring modern amenities, an outdoor pool, restaurant, and bar. Known for its aesthetic design and central location.',
+                'description' => 'A well-rated 4-star boutique hotel featuring modern amenities, an outdoor pool, restaurant, and bar. Known for its aesthetic design and central location.',
                 'address' => 'Jose Rosales Ave, Doongan',
                 'city' => 'Butuan City',
                 'state' => 'Agusan del Norte',
@@ -60,19 +60,19 @@ class HotelSystemSeeder extends Seeder
                 'star_rating' => 4,
             ],
             [
-                'name' => 'Butuan Grand Palace Hotel',
-                'description' => 'A large, centrally located hotel providing business and leisure services, event spaces, and 24-hour service.',
-                'address' => 'J.P. Rizal St',
+                'name' => 'Hotel Oazis Butuan',
+                'description' => 'Well-regarded hotel offering a range of premium amenities, including a magnificent pool and fine dining restaurant.',
+                'address' => 'J.C. Aquino Ave',
                 'city' => 'Butuan City',
                 'state' => 'Agusan del Norte',
                 'country' => 'Philippines',
-                'phone' => '+63 85 342 0800',
-                'email' => 'info@butuangrandpalace.com',
+                'phone' => '+63 85 342 8888',
+                'email' => 'info@hoteloazis.com',
                 'star_rating' => 4,
             ],
             [
                 'name' => 'Go Hotels Butuan',
-                'description' => 'Budget-friendly choice located directly near Robinsons Place Butuan, ideal for travelers looking for convenience.',
+                'description' => 'A famous modern hotel located directly near Robinsons Place Butuan, ideal for travelers looking for convenience.',
                 'address' => 'J.C. Aquino Ave, Brgy. Libertad',
                 'city' => 'Butuan City',
                 'state' => 'Agusan del Norte',
@@ -80,73 +80,7 @@ class HotelSystemSeeder extends Seeder
                 'phone' => '+63 922 464 6835',
                 'email' => 'reservations@gohotels.ph',
                 'star_rating' => 3,
-            ],
-            [
-                'name' => 'Amarah Hotel',
-                'description' => 'Modern rooms, outdoor pool, and proximity to major government offices and SM City Butuan.',
-                'address' => 'Jose Rosales Ave, Doongan',
-                'city' => 'Butuan City',
-                'state' => 'Agusan del Norte',
-                'country' => 'Philippines',
-                'phone' => '+63 85 817 9999',
-                'email' => 'stay@amarahhotel.com',
-                'star_rating' => 3,
-            ],
-            [
-                'name' => 'Almont City Hotel',
-                'description' => 'Comfortable, standard hotel known for spacious rooms and a welcoming environment, often favored by business travelers.',
-                'address' => 'San Jose St',
-                'city' => 'Butuan City',
-                'state' => 'Agusan del Norte',
-                'country' => 'Philippines',
-                'phone' => '+63 85 342 5263',
-                'email' => 'info@almontcity.com',
-                'star_rating' => 3,
-            ],
-            [
-                'name' => 'Hotel Oazis Butuan',
-                'description' => 'Well-regarded hotel offering a range of amenities, including a pool and restaurant.',
-                'address' => 'J.C. Aquino Ave',
-                'city' => 'Butuan City',
-                'state' => 'Agusan del Norte',
-                'country' => 'Philippines',
-                'phone' => '+63 85 342 8888',
-                'email' => 'info@hoteloazis.com',
-                'star_rating' => 3,
-            ],
-            [
-                'name' => 'Big Daddy Hotel and Convention Center',
-                'description' => 'Extensive convention facilities, suitable for large groups, events, and business travelers.',
-                'address' => 'Imadejas',
-                'city' => 'Butuan City',
-                'state' => 'Agusan del Norte',
-                'country' => 'Philippines',
-                'phone' => '+63 85 341 5111',
-                'email' => 'events@bigdaddy.com',
-                'star_rating' => 3,
-            ],
-            [
-                'name' => 'Embassy Hotel',
-                'description' => 'Noted for its friendly staff and central location in the heart of Butuan City.',
-                'address' => 'Montilla Blvd',
-                'city' => 'Butuan City',
-                'state' => 'Agusan del Norte',
-                'country' => 'Philippines',
-                'phone' => '+63 85 342 2222',
-                'email' => 'info@embassyhotel.com',
-                'star_rating' => 3,
-            ],
-            [
-                'name' => 'The Red Palm Suites and Restaurant',
-                'description' => 'Popular choice for travelers, known for good service and comfortable, suite-style accommodations.',
-                'address' => 'Villa Kananga',
-                'city' => 'Butuan City',
-                'state' => 'Agusan del Norte',
-                'country' => 'Philippines',
-                'phone' => '+63 85 341 8888',
-                'email' => 'reservations@redpalmsuites.com',
-                'star_rating' => 3,
-            ],
+            ]
         ];
 
         // ── Amenities ──────────────────────────────────────────
@@ -178,58 +112,40 @@ class HotelSystemSeeder extends Seeder
                 ])
             );
 
-            // Create 6 levels of room types for each hotel (increasing by price)
+            // Create 4 levels of room types for each hotel (1st to 4th floor)
             $roomTypes = [
                 'standard_single' => RoomType::updateOrCreate(
-                    ['hotel_id' => $hotel->id, 'name' => 'Standard Single (1st-2nd Floor)'],
+                    ['hotel_id' => $hotel->id, 'name' => 'Standard Single (1st Floor)'],
                     [
-                        'description' => "Economy option on lower floors.",
-                        'base_price' => 1500,
+                        'description' => "Economy option. Our most affordable accommodation.",
+                        'base_price' => 1200,
                         'max_occupancy' => 1,
                         'bed_type' => 'Single',
                     ]
                 ),
                 'standard_double' => RoomType::updateOrCreate(
-                    ['hotel_id' => $hotel->id, 'name' => 'Standard Double (3rd-4th Floor)'],
+                    ['hotel_id' => $hotel->id, 'name' => 'Standard Double (2nd Floor)'],
                     [
-                        'description' => "Comfortable rooms for two on mid-lower floors.",
+                        'description' => "Comfortable room for two with standard amenities.",
                         'base_price' => 2500,
                         'max_occupancy' => 2,
                         'bed_type' => 'Double',
                     ]
                 ),
-                'deluxe_single' => RoomType::updateOrCreate(
-                    ['hotel_id' => $hotel->id, 'name' => 'Deluxe Single (5th-6th Floor)'],
-                    [
-                        'description' => "Enhanced comfort on middle floors.",
-                        'base_price' => 3800,
-                        'max_occupancy' => 1,
-                        'bed_type' => 'Single',
-                    ]
-                ),
                 'deluxe_double' => RoomType::updateOrCreate(
-                    ['hotel_id' => $hotel->id, 'name' => 'Deluxe Double (7th-8th Floor)'],
+                    ['hotel_id' => $hotel->id, 'name' => 'Deluxe Double (3rd Floor)'],
                     [
-                        'description' => "Premium views and double beds on higher floors.",
-                        'base_price' => 5500,
-                        'max_occupancy' => 2,
-                        'bed_type' => 'Double',
-                    ]
-                ),
-                'executive_suite' => RoomType::updateOrCreate(
-                    ['hotel_id' => $hotel->id, 'name' => 'Executive Suite (9th Floor)'],
-                    [
-                        'description' => "Luxurious space with city views.",
-                        'base_price' => 15000,
+                        'description' => "Spacious and enhanced comfort with premium views.",
+                        'base_price' => 4500,
                         'max_occupancy' => 3,
                         'bed_type' => 'Double',
                     ]
                 ),
-                'presidential_suite' => RoomType::updateOrCreate(
-                    ['hotel_id' => $hotel->id, 'name' => 'Presidential Suite (10th Floor)'],
+                'executive_suite' => RoomType::updateOrCreate(
+                    ['hotel_id' => $hotel->id, 'name' => 'Executive Suite (4th Floor)'],
                     [
-                        'description' => "Top-tier luxury penthouse suites.",
-                        'base_price' => 45000,
+                        'description' => "Luxurious, most expensive space with full panoramic city views.",
+                        'base_price' => 12000,
                         'max_occupancy' => 4,
                         'bed_type' => 'Double',
                     ]
@@ -275,15 +191,13 @@ class HotelSystemSeeder extends Seeder
                 }
             }
 
-            // Create 30 rooms across 6 floors for each hotel
-            for ($floor = 1; $floor <= 6; $floor++) {
+            // Create 20 rooms across 4 floors for each hotel
+            for ($floor = 1; $floor <= 4; $floor++) {
                 $rt = match ($floor) {
                     1 => $roomTypes['standard_single'],
                     2 => $roomTypes['standard_double'],
-                    3 => $roomTypes['deluxe_single'],
-                    4 => $roomTypes['deluxe_double'],
-                    5 => $roomTypes['executive_suite'],
-                    default => $roomTypes['presidential_suite'],
+                    3 => $roomTypes['deluxe_double'],
+                    default => $roomTypes['executive_suite'],
                 };
 
                 for ($i = 1; $i <= 5; $i++) {
