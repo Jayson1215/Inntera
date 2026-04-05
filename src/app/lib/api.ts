@@ -62,7 +62,17 @@ export interface ApiResponse<T> {
 }
 
 // Use the environment variable in production, fallback to local proxy during development
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const getApiBase = () => {
+  const base = import.meta.env.VITE_API_BASE_URL;
+  if (!base) return '/api';
+  
+  // Normalize: If they gave the root URL (without /api), add it. 
+  // If they gave it correctly (with /api), leave it alone.
+  const hasApi = base.toLowerCase().endsWith('/api') || base.toLowerCase().includes('/api/');
+  return hasApi ? base : `${base.replace(/\/$/, '')}/api`;
+};
+
+const API_BASE = getApiBase();
 
 async function apiFetch<T>(
   url: string,
