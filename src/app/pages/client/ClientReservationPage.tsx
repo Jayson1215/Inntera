@@ -160,7 +160,7 @@ export function ClientReservationPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to {hotel.name}
           </Link>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Secure Your Stay</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Secure Your Stay</h1>
         </div>
         <div className="flex gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
           <Clock className="w-3 h-3" />
@@ -168,15 +168,15 @@ export function ClientReservationPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-8">
           {/* Step 1: Stay Details */}
-          <section className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200 border border-slate-100">
+          <section className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-100 border border-slate-200/60">
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg">1</div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Your Stay Details</h3>
-                <p className="text-sm text-slate-500">Pick your dates and group size</p>
+                <p className="text-sm text-slate-500 font-medium">Pick your dates and group size</p>
               </div>
             </div>
 
@@ -189,7 +189,7 @@ export function ClientReservationPage() {
                     type="date"
                     value={checkIn}
                     onChange={(e) => handleCheckInChange(e.target.value)}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                     required
                   />
                 </div>
@@ -203,7 +203,7 @@ export function ClientReservationPage() {
                     value={checkOut}
                     onChange={(e) => setCheckOut(e.target.value)}
                     min={checkIn ? new Date(new Date(checkIn).getTime() + 86400000).toISOString().split('T')[0] : ''}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                     required
                   />
                 </div>
@@ -217,7 +217,7 @@ export function ClientReservationPage() {
                     min="1"
                     value={adults}
                     onChange={(e) => setAdults(e.target.value)}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                   />
                 </div>
               </div>
@@ -230,7 +230,7 @@ export function ClientReservationPage() {
                     min="0"
                     value={children}
                     onChange={(e) => setChildren(e.target.value)}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                   />
                 </div>
               </div>
@@ -238,12 +238,12 @@ export function ClientReservationPage() {
           </section>
 
           {/* Step 2: Guest Information */}
-          <section className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200 border border-slate-100">
+          <section className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-100 border border-slate-200/60">
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg">2</div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Guest Information</h3>
-                <p className="text-sm text-slate-500">How should we contact you?</p>
+                <p className="text-sm text-slate-500 font-medium">How should we contact you?</p>
               </div>
             </div>
 
@@ -254,7 +254,7 @@ export function ClientReservationPage() {
                   placeholder="John"
                   value={guestFirstName}
                   onChange={(e) => setGuestFirstName(e.target.value)}
-                  className="h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                  className="h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                   required
                 />
               </div>
@@ -264,7 +264,7 @@ export function ClientReservationPage() {
                   placeholder="Doe"
                   value={guestLastName}
                   onChange={(e) => setGuestLastName(e.target.value)}
-                  className="h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                  className="h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                   required
                 />
               </div>
@@ -276,7 +276,7 @@ export function ClientReservationPage() {
                     type="email"
                     value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                     required
                   />
                 </div>
@@ -288,7 +288,7 @@ export function ClientReservationPage() {
                   <Input
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                     required
                   />
                 </div>
@@ -300,7 +300,7 @@ export function ClientReservationPage() {
                   <Input
                     value={guestAddress}
                     onChange={(e) => setGuestAddress(e.target.value)}
-                    className="pl-12 h-14 border-2 border-slate-50 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
+                    className="pl-12 h-14 border-2 border-slate-100 focus:border-emerald-500 rounded-2xl font-bold bg-slate-50/50"
                     required
                   />
                 </div>
@@ -309,12 +309,12 @@ export function ClientReservationPage() {
           </section>
 
           {/* Step 3: Payment */}
-          <section className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200 border border-slate-100">
+          <section className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-100 border border-slate-200/60">
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg">3</div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Payment Option</h3>
-                <p className="text-sm text-slate-500">Choose your preferred payment method</p>
+                <p className="text-sm text-slate-500 font-medium">Choose your preferred payment method</p>
               </div>
             </div>
 
@@ -336,13 +336,13 @@ export function ClientReservationPage() {
                   }`}
                 >
                   <span className="text-3xl">{method.icon}</span>
-                  <div className="text-left">
-                    <p className={`text-sm font-black uppercase tracking-widest mb-1 ${
+                  <div className="text-left font-bold">
+                    <p className={`text-xs font-black uppercase tracking-widest mb-1 ${
                       paymentMethod === method.id ? method.color : 'text-slate-500'
                     }`}>
                       {method.label}
                     </p>
-                    <p className="text-[10px] text-slate-400 font-bold">{method.sub}</p>
+                    <p className="text-[10px] text-slate-400 font-black">{method.sub}</p>
                   </div>
                   {paymentMethod === method.id && (
                     <CheckCircle2 className="w-6 h-6 text-emerald-600 ml-auto" />
@@ -352,11 +352,11 @@ export function ClientReservationPage() {
             </div>
           </section>
 
-          <div className="pt-4 flex items-center gap-6">
+          <div className="pt-4 flex flex-col md:flex-row items-center gap-6">
             <Button 
               onClick={handleConfirmBooking}
               disabled={isSubmitting}
-              className="flex-1 h-20 bg-slate-900 hover:bg-slate-800 text-white font-black text-xl rounded-3xl shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+              className="w-full md:flex-1 h-20 bg-slate-900 hover:bg-slate-800 text-white font-black text-xl rounded-3xl shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
             >
               {isSubmitting ? (
                 <>
@@ -370,16 +370,16 @@ export function ClientReservationPage() {
                 </>
               )}
             </Button>
-            <div className="w-48 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-tight">
+            <div className="md:w-48 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-tight">
               By confirming, you agree to our <span className="text-emerald-600 cursor-pointer">Terms & Conditions</span>
             </div>
           </div>
         </div>
 
         {/* Sidebar Summary */}
-        <div className="space-y-8">
-          <Card className="rounded-[2.5rem] border-2 border-emerald-500 overflow-hidden shadow-2xl sticky top-24 transform rotate-1">
-            <div className="h-48 bg-emerald-600 flex items-center justify-center text-8xl">
+        <div className="space-y-8 lg:sticky lg:top-24">
+          <Card className="rounded-[2.5rem] border-2 border-slate-100 overflow-hidden shadow-2xl shadow-slate-200">
+            <div className="h-48 bg-slate-900 flex items-center justify-center text-8xl">
               🏨
             </div>
             <CardContent className="p-8 bg-white border-none">
@@ -388,47 +388,47 @@ export function ClientReservationPage() {
                   <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400 border-none" />
                 ))}
               </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tighter uppercase italic">{hotel.name}</h2>
+              <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight uppercase italic">{hotel.name}</h2>
               <p className="text-slate-500 font-bold flex items-center gap-2 text-sm mb-8">
                 <MapPin className="w-4 h-4 text-emerald-600" />
                 {hotel.city}, {hotel.address}
               </p>
 
-              <div className="space-y-6 pb-8 border-b border-slate-100 mb-8">
+              <div className="space-y-6 pb-8 border-b border-slate-100 mb-8 font-bold text-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Suite Type</p>
-                    <p className="font-bold text-slate-800">{roomType.name}</p>
+                    <p>{roomType.name}</p>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold">Luxe</Badge>
+                  <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black tracking-widest">LUXE</Badge>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-slate-600 font-medium">
-                  <div className="flex items-center gap-1"><Users className="w-3 h-3 text-emerald-600" /> {adults} G</div>
-                  <div className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-600" /> Insured</div>
+                <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest">
+                  <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-emerald-600" /> {adults} GUESTS</div>
+                  <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> INSURED</div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center text-slate-400 text-xs font-black uppercase tracking-widest">
-                  <span>Standard Rate</span>
-                  <span>₱{roomType.base_price.toLocaleString()}</span>
+                <div className="flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                  <span>Nightly Rate</span>
+                  <span>₱{Number(roomType.base_price).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-slate-400 text-xs font-black uppercase tracking-widest">
-                  <span>Taxes & Fees</span>
-                  <span>₱0</span>
+                <div className="flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                  <span>Local Taxes</span>
+                  <span>₱0.00</span>
                 </div>
-                <div className="flex justify-between items-center pt-4 text-slate-900 font-black text-3xl tracking-tighter italic">
+                <div className="flex justify-between items-center pt-4 text-slate-900 font-black text-4xl tracking-tighter">
                   <span>TOTAL</span>
-                  <span className="text-emerald-600">₱{roomType.base_price.toLocaleString()}</span>
+                  <span className="text-emerald-600">₱{Number(roomType.base_price).toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="p-8 bg-emerald-50 rounded-3xl border border-emerald-100 -rotate-1">
-            <h4 className="font-bold text-emerald-900 mb-2">Inntera Guarantee</h4>
-            <p className="text-xs text-emerald-700 leading-relaxed font-medium">
-              Your reservation is protected by our global security standards. No hidden fees, instant confirmation, and 24/7 support.
+          <div className="p-8 bg-slate-50 rounded-3xl border border-slate-200/50">
+            <h4 className="font-bold text-slate-900 mb-2 uppercase tracking-widest text-xs">Inntera Guarantee</h4>
+            <p className="text-[11px] text-slate-500 leading-relaxed font-bold uppercase tracking-tight">
+              Your reservation is protected by our global security standards. No hidden fees, instant confirmation, and 20/7 expert support.
             </p>
           </div>
         </div>
