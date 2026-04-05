@@ -100,13 +100,22 @@ async function apiFetch<T>(
         }
         return { success: false, errors: flatErrors };
       }
-      return { success: false, error: json.error || json.message || 'Request failed' };
+
+      // Handle object-style errors (e.g. { error: { message: '...' } } or { message: { code: '...', message: '...' } })
+      let errorMsg: any = json.error || json.message || 'Request failed';
+      if (typeof errorMsg === 'object' && errorMsg !== null) {
+        errorMsg = errorMsg.message || JSON.stringify(errorMsg);
+      }
+      
+      return { success: false, error: String(errorMsg) };
     }
 
     return { success: true, data: json.data };
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
-    return { success: false, error: 'Network error. Is the backend running?' };
+    // Ensure the catch-all error is also a safe string
+    const message = error?.message || 'Network error. Is the backend running?';
+    return { success: false, error: String(message) };
   }
 }
 
