@@ -70,6 +70,7 @@ class Booking extends Model
     // Mutators
     public static function generateReference()
     {
-        return 'BK' . date('YmdHis') . random_int(1000, 9999);
+        $count = \App\Models\Booking::withTrashed()->count();
+        return 'BK-BTU-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
     }
 }

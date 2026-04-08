@@ -57,6 +57,7 @@ export interface DashboardStats {
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  message?: string;
   error?: string;
   errors?: Record<string, string>;
 }
@@ -79,7 +80,7 @@ async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for initial heavy load
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for initial heavy load or slow networks
 
   try {
     const storedUser = localStorage.getItem('hotel_user');
@@ -191,6 +192,12 @@ export const roomService = {
       body: JSON.stringify({ status }),
     });
   },
+
+  async delete(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/rooms/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Bookings
@@ -235,6 +242,12 @@ export const bookingService = {
   async checkOut(booking_id: number): Promise<ApiResponse<Booking>> {
     return this.updateStatus(booking_id, 'checked-out');
   },
+  
+  async delete(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/bookings/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Guests
@@ -258,6 +271,12 @@ export const guestService = {
     return apiFetch<Guest>(`/guests/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  },
+
+  async delete(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/guests/${id}`, {
+      method: 'DELETE',
     });
   },
 };
@@ -284,6 +303,12 @@ export const roomTypeService = {
     return apiFetch<RoomType>(`/room-types/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  },
+
+  async delete(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/room-types/${id}`, {
+      method: 'DELETE',
     });
   },
 };
@@ -339,6 +364,26 @@ export const staffService = {
     const params = hotelId ? `?hotel_id=${hotelId}` : '';
     return apiFetch<Staff[]>(`/staff${params}`);
   },
+
+  async create(data: any): Promise<ApiResponse<Staff>> {
+    return apiFetch<Staff>('/staff', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: number, data: any): Promise<ApiResponse<Staff>> {
+    return apiFetch<Staff>(`/staff/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/staff/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Payments
@@ -384,6 +429,7 @@ export const authService = {
     last_name: string;
     email: string;
     password: string;
+    role: 'guest' | 'staff';
   }): Promise<ApiResponse<AuthUser>> {
     return apiFetch<AuthUser>('/auth/signup', {
       method: 'POST',
@@ -432,6 +478,32 @@ export const notificationService = {
 
   async delete(id: string): Promise<ApiResponse<void>> {
     return apiFetch(`/notifications/${id}`, { method: 'DELETE' });
+  },
+};
+// Admin Management
+export const adminService = {
+  async banGuest(id: number): Promise<ApiResponse<{ status: string }>> {
+    return apiFetch<{ status: string }>(`/admin/guests/${id}/ban`, {
+      method: 'PATCH',
+    });
+  },
+
+  async removeGuest(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/admin/guests/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async suspendStaff(id: number): Promise<ApiResponse<{ status: string }>> {
+    return apiFetch<{ status: string }>(`/admin/staff/${id}/suspend`, {
+      method: 'PATCH',
+    });
+  },
+
+  async removeStaff(id: number): Promise<ApiResponse<void>> {
+    return apiFetch<void>(`/admin/staff/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 

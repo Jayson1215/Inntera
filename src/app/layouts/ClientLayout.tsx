@@ -7,7 +7,8 @@ import {
   Calendar,
   User,
   LogOut,
-  Hotel
+  Hotel,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { MobileNav } from '../components/MobileNav';
@@ -19,19 +20,17 @@ export function ClientLayout() {
   const location = useLocation();
 
   useEffect(() => {
-    // Redirect to login if not authenticated or not guest/client
     if (!user || user.role !== 'guest') {
       navigate('/login', { replace: true });
     }
   }, [user, navigate]);
 
-  // Show loading state while checking auth
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-[#FAFAF8]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-stone-400 font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -39,10 +38,10 @@ export function ClientLayout() {
 
   if (user.role !== 'guest') {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-[#E8E6E3]">
         <div className="text-center">
           <p className="text-red-600 font-semibold">Access Denied</p>
-          <p className="text-gray-600 mt-2">You don't have permission to access this area.</p>
+          <p className="text-stone-500 mt-2">You don't have permission to access this area.</p>
         </div>
       </div>
     );
@@ -60,16 +59,18 @@ export function ClientLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top Navigation */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
+      {/* Top Navigation — Warm Light */}
+      <nav className="bg-white/90 backdrop-blur-xl border-b border-stone-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center uppercase tracking-tighter">
-            <Link to="/client/dashboard" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Hotel className="w-5 h-5 text-white" />
+          <div className="flex justify-between h-16 items-center">
+            <Link to="/client/dashboard" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shadow-md shadow-amber-500/15">
+                <Hotel className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-black text-gray-900">Inntera</span>
+              <span className="text-lg font-black tracking-tight">
+                <span className="text-amber-600">Inn</span><span className="text-stone-800">tera</span>
+              </span>
             </Link>
 
             {/* Desktop Navigation Links */}
@@ -81,25 +82,30 @@ export function ClientLayout() {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all ${
                       isActive
-                        ? 'bg-red-50 text-red-600'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                        : 'text-stone-400 hover:bg-stone-50 hover:text-stone-600'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     <span>{item.label}</span>
                   </Link>
                 );
               })}
 
-              <div className="border-l border-gray-200 pl-4 ml-4 flex items-center gap-3">
+              <div className="border-l border-stone-100 pl-4 ml-4 flex items-center gap-3">
                 <NotificationBell />
-                <span className="text-sm font-semibold text-gray-900">{user?.name || 'Guest'}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-200/60">
+                    <Sparkles size={12} className="text-amber-600" />
+                  </div>
+                  <span className="text-xs font-bold text-stone-500">{user?.name || 'Guest'}</span>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-gray-600 hover:text-red-600 active:scale-95"
+                  className="text-stone-300 hover:text-red-500 hover:bg-red-50 active:scale-95 rounded-lg"
                   onClick={handleLogout}
                 >
                   <LogOut className="w-4 h-4" />
@@ -110,14 +116,14 @@ export function ClientLayout() {
             {/* Mobile Actions */}
             <div className="flex md:hidden items-center gap-2">
                <NotificationBell />
-               <span className="text-sm font-bold text-gray-900 truncate max-w-[80px]">{user?.name?.split(' ')[0] || 'Guest'}</span>
+               <span className="text-xs font-bold text-stone-500 truncate max-w-[80px]">{user?.name?.split(' ')[0] || 'Guest'}</span>
                <Button
                   variant="ghost"
                   size="sm"
-                  className="text-gray-600 active:scale-90"
+                  className="text-stone-400 active:scale-90"
                   onClick={handleLogout}
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                 </Button>
             </div>
           </div>
@@ -136,4 +142,3 @@ export function ClientLayout() {
     </div>
   );
 }
-

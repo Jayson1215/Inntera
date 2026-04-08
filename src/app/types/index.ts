@@ -6,9 +6,13 @@ export interface Hotel {
   address: string;
   city: string;
   phone: string;
-  timezone: string;
+  image_url?: string;
+  description?: string;
   star_rating?: number;
+  opens_at?: string;
+  closes_at?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 
@@ -19,8 +23,9 @@ export interface Staff {
   hotel_id: number;
   name: string;
   role: string;
-  email: string;
   phone: string;
+  user?: { email: string };
+  status?: 'active' | 'suspended';
 }
 
 // Amenities
@@ -85,6 +90,7 @@ export interface Guest {
   phone: string;
   address: string;
   loyalty_member_id?: string;
+  status: 'active' | 'banned';
   created_at: string;
 }
 

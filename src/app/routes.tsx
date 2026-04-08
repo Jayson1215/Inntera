@@ -10,6 +10,7 @@ import { BookingProvider } from './context/BookingContext';
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { HomePage } from './pages/HomePage';
+import { GoogleAuthHandler } from './pages/GoogleAuthHandler';
 import { ErrorPage } from './pages/ErrorPage';
 
 // Admin pages
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { index: true, element: <BookingProvider><HomePage /></BookingProvider> },
       { path: 'login', Component: LoginPage },
       { path: 'signup', Component: SignUpPage },
+      { path: 'auth/google/callback', Component: GoogleAuthHandler },
 
       // Admin routes
       {

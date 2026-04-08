@@ -15,6 +15,15 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\SystemController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AdminController;
+
+// Admin Management
+Route::prefix('admin')->group(function () {
+    Route::patch('/guests/{id}/ban', [AdminController::class, 'toggleBanGuest']);
+    Route::delete('/guests/{id}', [AdminController::class, 'removeGuest']);
+    Route::patch('/staff/{id}/suspend', [AdminController::class, 'toggleSuspendStaff']);
+    Route::delete('/staff/{id}', [AdminController::class, 'removeStaff']);
+});
 
 // System Init
 Route::get('/system/init', [SystemController::class, 'init']);
@@ -28,6 +37,8 @@ Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
 // Auth
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/signup', [AuthController::class, 'signup']);
+Route::get('/auth/google/redirect', [AuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 
 // Dashboard
 Route::get('/dashboard/stats', [DashboardController::class, 'stats']);

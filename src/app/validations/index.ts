@@ -12,7 +12,11 @@ export const HotelCreateSchema = z.object({
   address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
   phone: z.string().min(1, 'Phone is required'),
-  timezone: z.string().min(1, 'Timezone is required'),
+  image_url: z.string().nullish(),
+  description: z.string().nullish(),
+  opens_at: z.string().nullish(),
+  closes_at: z.string().nullish(),
+  star_rating: z.number().nullish(),
 });
 
 export const HotelUpdateSchema = HotelCreateSchema.partial();
@@ -66,12 +70,12 @@ export const RateUpdateSchema = z.object({
 // Guest Schemas
 export const GuestCreateSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
-  middle_name: z.string().optional(),
+  middle_name: z.string().nullable().optional(),
   last_name: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email address'),
-  phone: z.string().min(1, 'Phone is required'),
-  address: z.string().optional(),
-  loyalty_member_id: z.string().optional(),
+  phone: z.string().nullable().optional().or(z.literal('')),
+  address: z.string().nullable().optional(),
+  loyalty_member_id: z.string().nullable().optional(),
 });
 
 export const GuestUpdateSchema = GuestCreateSchema.partial();

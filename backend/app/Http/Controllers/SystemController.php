@@ -33,9 +33,8 @@ class SystemController extends Controller
         // Final, safe Room fetch - all columns
         $rooms = Room::with(['hotel', 'roomType'])->get();
 
-        $hotels = Hotel::withCount('rooms')
-            ->select('id', 'name', 'address', 'city', 'phone')
-            ->get();
+        // Fetch all hotels with room count
+        $hotels = Hotel::withCount('rooms')->get();
         
         $guests = Guest::withCount('bookings')
             ->orderBy('created_at', 'desc')

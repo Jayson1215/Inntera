@@ -28,6 +28,9 @@ class Hotel extends Model
         'total_rooms',
         'available_rooms',
         'star_rating',
+        'image_url',
+        'opens_at',
+        'closes_at',
     ];
 
     protected $casts = [

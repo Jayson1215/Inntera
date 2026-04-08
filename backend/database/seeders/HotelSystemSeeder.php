@@ -24,19 +24,19 @@ class HotelSystemSeeder extends Seeder
     {
         // ── Users (Admin + Staff) ──────────────────────────────
         $adminUser = User::updateOrCreate(
-            ['email' => 'admin@inntera.com'],
+            ['email' => 'admin@gmail.com'],
             [
                 'name' => 'Admin User',
-                'password' => Hash::make('admin123'),
+                'password' => 'admin123',
                 'role' => 'admin',
             ]
         );
 
         $staffUser = User::updateOrCreate(
-            ['email' => 'staff1@inntera.com'],
+            ['email' => 'manager@gmail.com'],
             [
-                'name' => 'Staff Member',
-                'password' => Hash::make('staff123'),
+                'name' => 'Manager',
+                'password' => 'manager123',
                 'role' => 'staff',
             ]
         );
@@ -180,7 +180,7 @@ class HotelSystemSeeder extends Seeder
                         ['email' => $email],
                         [
                             'name' => ucfirst($config['role']) . " Staff {$i}",
-                            'password' => Hash::make('password123'),
+                            'password' => 'password123',
                             'role' => 'staff',
                         ]
                     );
@@ -234,7 +234,7 @@ class HotelSystemSeeder extends Seeder
                 'display_id' => 'GUEST-1001',
                 'first_name' => 'Juan',
                 'last_name' => 'Dela Cruz',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'phone' => '09123456789',
                 'address' => 'Brgy. Libertad, Butuan City',
             ]
@@ -246,7 +246,7 @@ class HotelSystemSeeder extends Seeder
                 'display_id' => 'GUEST-1002',
                 'first_name' => 'Alice',
                 'last_name' => 'Cooper',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'phone' => '+1 (555) 123-4567',
                 'address' => '789 Park Ave, New York, NY',
             ]

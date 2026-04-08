@@ -17,12 +17,14 @@ interface SignUpData {
   lastName: string;
   email: string;
   password: string;
+  role: 'guest' | 'staff';
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   signup: (data: SignUpData) => Promise<{ success: boolean; user?: User; error?: string }>;
+  completeSocialLogin: (userData: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -39,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: response.data.role,
           id: response.data.id,
           name: response.data.name,
-          hotel_id: response.data.hotel_id,
+          hotel_id: response.data.hotel_id ?? undefined,
         };
         setUser(userData);
         localStorage.setItem('hotel_user', JSON.stringify(userData));
@@ -77,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signup = useCallback(async (data: SignUpData): Promise<{ success: boolean; error?: string }> => {
+  const signup = useCallback(async (data: SignUpData): Promise<{ success: boolean; user?: User; error?: string }> => {
     setIsLoading(true);
     setError(null);
 
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         last_name: data.lastName,
         email: data.email,
         password: data.password,
+        role: data.role,
       });
 
       if (response.success && response.data) {
@@ -115,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: response.data.role,
           id: response.data.id,
           name: response.data.name,
-          hotel_id: response.data.hotel_id,
+          hotel_id: response.data.hotel_id ?? undefined,
         };
         setUser(userData);
         localStorage.setItem('hotel_user', JSON.stringify(userData));
@@ -134,6 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const completeSocialLogin = useCallback((userData: User) => {
+    setUser(userData);
+    localStorage.setItem('hotel_user', JSON.stringify(userData));
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     setError(null);
@@ -141,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated: !!user, isLoading, error }}>
+    <AuthContext.Provider value={{ user, login, signup, completeSocialLogin, logout, isAuthenticated: !!user, isLoading, error }}>
       {children}
     </AuthContext.Provider>
   );

@@ -89,7 +89,9 @@ class BookingController extends Controller
             'payment' => 'sometimes|array',
             'payment.method' => 'required_with:payment|string',
             'payment.amount' => 'required_with:payment|numeric|min:0',
+            'payment.status' => 'sometimes|string|in:pending,completed,failed,refunded',
             'payment.transaction_id' => 'nullable|string',
+            'payment.notes' => 'nullable|string',
         ]);
 
         $booking = DB::transaction(function () use ($validated) {
@@ -178,6 +180,8 @@ class BookingController extends Controller
             // Create payment if provided
             if (!empty($validated['payment'])) {
                 $methodMap = [
+                    'Cash' => 'cash',
+                    'Credit/Debit Card' => 'credit_card',
                     'Pay at Hotel (Card)' => 'credit_card',
                     'GCash' => 'gcash',
                     'PayPal' => 'paypal',
@@ -194,9 +198,10 @@ class BookingController extends Controller
                     'booking_id' => $booking->booking_id,
                     'amount' => $validated['payment']['amount'],
                     'payment_method' => $dbMethod,
-                    'status' => 'pending',
+                    'status' => $validated['payment']['status'] ?? 'pending',
                     'transaction_id' => $validated['payment']['transaction_id'] ?? null,
                     'payment_date' => now(),
+                    'notes' => $validated['payment']['notes'] ?? null,
                 ]);
             }
 

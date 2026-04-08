@@ -80,16 +80,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchNotifications();
-      // Poll every 10 seconds for a more responsive feel in local dev
-      const interval = setInterval(fetchNotifications, 10000);
+      // Poll every 30 seconds to maintain responsiveness without overloading the server
+      const interval = setInterval(fetchNotifications, 30000);
       return () => clearInterval(interval);
     } else {
       setNotifications([]);
       setUnreadCount(0);
     }
-  }, [user, fetchNotifications]);
+  }, [user?.id, fetchNotifications]); // Stable user.id trigger
 
   return (
     <NotificationContext.Provider value={{

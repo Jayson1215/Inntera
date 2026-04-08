@@ -4,10 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Staff extends Model
 {
     use SoftDeletes;
+
+    protected static function booted()
+    {
+        static::creating(function ($staff) {
+            if (empty($staff->display_id)) {
+                $staff->display_id = 'STF-' . strtoupper(Str::random(6));
+            }
+        });
+    }
 
     protected $primaryKey = 'id';
     protected $table = 'staff';
@@ -26,6 +36,7 @@ class Staff extends Model
         'hotel_id',
         'position',
         'hire_date',
+        'status',
     ];
 
     protected $casts = [

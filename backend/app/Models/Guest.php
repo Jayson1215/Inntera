@@ -25,6 +25,8 @@ class Guest extends Authenticatable
 
     protected $fillable = [
         'display_id',
+        'google_id',
+        'avatar',
         'first_name',
         'middle_name',
         'last_name',
@@ -33,6 +35,7 @@ class Guest extends Authenticatable
         'phone',
         'address',
         'loyalty_member_id',
+        'status',
     ];
 
     protected $hidden = [
@@ -53,5 +56,20 @@ class Guest extends Authenticatable
     public function getFullNameAttribute()
     {
         return $this->first_name . ' ' . $this->last_name;
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
+        ];
     }
 }

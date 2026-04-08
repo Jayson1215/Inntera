@@ -1,6 +1,8 @@
-import { Building2, BedDouble, Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Building2, BedDouble, Calendar, Users, DollarSign, TrendingUp, ArrowRight, ArrowUpRight, Activity } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { Hotel, Room, Booking, Guest } from '../../types';
+import { Button } from '../../components/ui/button';
+import { Link } from 'react-router-dom';
 
 export function AdminDashboard() {
   const { hotels, rooms, bookings, guests, isLoading } = useBooking();
@@ -9,12 +11,12 @@ export function AdminDashboard() {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+          <div className="w-20 h-20 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <Building2 className="w-8 h-8 text-indigo-600" />
+            <Activity className="w-8 h-8 text-blue-600 animate-pulse" />
           </div>
         </div>
-        <p className="mt-6 text-sm font-semibold text-slate-500 tracking-widest uppercase animate-pulse">Loading Dashboard...</p>
+        <p className="mt-6 text-sm font-black text-slate-400 tracking-widest uppercase animate-pulse">Initializing Data...</p>
       </div>
     );
   }
@@ -31,12 +33,12 @@ export function AdminDashboard() {
   const occupancyRate = totalRooms > 0 ? Math.round((totalRooms - availableRooms) / totalRooms * 100) : 0;
 
   const stats = [
-    { title: 'Total Hotels', value: totalHotels, icon: Building2, gradient: 'from-indigo-500 to-indigo-700', bg: 'bg-indigo-50', text: 'text-indigo-700' },
-    { title: 'Total Rooms', value: totalRooms, subtitle: `${availableRooms} available`, icon: BedDouble, gradient: 'from-emerald-500 to-emerald-700', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-    { title: 'Active Bookings', value: activeBookings, subtitle: `${totalBookings} total`, icon: Calendar, gradient: 'from-violet-500 to-violet-700', bg: 'bg-violet-50', text: 'text-violet-700' },
-    { title: 'Total Guests', value: totalGuests, icon: Users, gradient: 'from-amber-500 to-amber-700', bg: 'bg-amber-50', text: 'text-amber-700' },
-    { title: 'Revenue', value: `₱${totalRevenue.toLocaleString()}`, icon: DollarSign, gradient: 'from-emerald-500 to-teal-700', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-    { title: 'Occupancy', value: `${occupancyRate}%`, icon: TrendingUp, gradient: 'from-rose-500 to-rose-700', bg: 'bg-rose-50', text: 'text-rose-700' },
+    { title: 'Properties', value: totalHotels, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Inventory', value: totalRooms, subtitle: `${availableRooms} Available`, icon: BedDouble, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { title: 'Active Stays', value: activeBookings, subtitle: `${totalBookings} Total`, icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50' },
+    { title: 'Registered Guests', value: totalGuests, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { title: 'Gross Revenue', value: `₱${totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Occupancy Rate', value: `${occupancyRate}%`, icon: TrendingUp, color: 'text-slate-600', bg: 'bg-slate-50' },
   ];
 
   const recentBookings = [...bookings]
@@ -45,48 +47,56 @@ export function AdminDashboard() {
 
   const getStatusStyles = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300';
-      case 'checked-in': return 'bg-blue-100 text-blue-700 ring-1 ring-blue-300';
-      case 'pending': return 'bg-amber-100 text-amber-700 ring-1 ring-amber-300';
-      case 'cancelled': return 'bg-red-100 text-red-700 ring-1 ring-red-300';
-      default: return 'bg-slate-100 text-slate-700 ring-1 ring-slate-300';
+      case 'confirmed': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      case 'checked-in': return 'bg-blue-50 text-blue-700 border-blue-100';
+      case 'pending': return 'bg-orange-50 text-orange-700 border-orange-100';
+      case 'cancelled': return 'bg-red-50 text-red-700 border-red-100';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
   return (
     <div className="space-y-8">
       <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeInUp 0.4s ease-out forwards; opacity: 0; }
       `}</style>
 
       {/* Header */}
-      <div className="fade-up">
-        <h1 className="text-3xl font-bold text-slate-900"> Performance Overview</h1>
-        <p className="text-slate-500 mt-1">Real-time metrics across all properties</p>
+      <div className="fade-up flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Partner Hub Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1 uppercase tracking-wider font-bold">Real-time property performance and metrics</p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100">
+           <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+           <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Live Sync Actionable</span>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={index}
-              className="fade-up group relative bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
-              style={{ animationDelay: `${index * 80}ms` }}
+              className="fade-up group bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-all duration-300"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.04] -mr-8 -mt-8">
-                <Icon className="w-full h-full" />
-              </div>
-              <div className="flex items-start justify-between relative z-10">
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{stat.title}</p>
-                  <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
-                  {stat.subtitle && <p className="text-sm text-slate-500 mt-1">{stat.subtitle}</p>}
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.title}</p>
+                  <p className="text-2xl font-bold text-slate-900 tracking-tight">{stat.value}</p>
+                  {stat.subtitle && (
+                    <p className="text-[11px] font-bold text-slate-500 mt-2 flex items-center gap-1">
+                       <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+                       {stat.subtitle}
+                    </p>
+                  )}
                 </div>
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm border border-black/5`}>
+                  <Icon className="w-5 h-5" />
                 </div>
               </div>
             </div>
@@ -95,16 +105,22 @@ export function AdminDashboard() {
       </div>
 
       {/* Recent Bookings */}
-      <div className="fade-up bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '500ms' }}>
+      <div className="fade-up bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '400ms' }}>
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Latest Reservations</h2>
-            <p className="text-sm text-slate-400">{bookings.length} total bookings</p>
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+                <Calendar className="w-4 h-4 text-blue-600" />
+             </div>
+             <div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">Recent Reservations</h2>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{bookings.length} system bookings</p>
+             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span className="text-slate-500">Live</span>
-          </div>
+          <Link to="/admin/bookings">
+            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold text-[11px] uppercase tracking-widest">
+              View All <ArrowRight className="w-3 h-3 ml-1.5" />
+            </Button>
+          </Link>
         </div>
         <div className="divide-y divide-slate-100">
           {recentBookings.map((booking, index) => {
@@ -113,40 +129,43 @@ export function AdminDashboard() {
             return (
               <div
                 key={booking.booking_id}
-                className="fade-up flex items-center justify-between px-6 py-4 hover:bg-slate-50/80 transition-colors group"
-                style={{ animationDelay: `${600 + index * 60}ms` }}
+                className="fade-up flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition-colors group"
+                style={{ animationDelay: `${500 + index * 50}ms` }}
               >
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {guest?.first_name?.charAt(0) || '?'}{guest?.last_name?.charAt(0) || ''}
+                  <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-sm">
+                    {guest?.first_name?.charAt(0)}{guest?.last_name?.charAt(0)}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900 truncate">{guest?.first_name} {guest?.last_name}</p>
-                    <p className="text-sm text-slate-400 truncate">{booking.booking_reference} • {hotel?.name}</p>
+                    <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{guest?.first_name} {guest?.last_name}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                       {booking.booking_reference} <span className="mx-1.5 text-slate-200">|</span> <span className="text-blue-600">{hotel?.name}</span>
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6 flex-shrink-0 ml-4">
+                <div className="flex items-center gap-8 flex-shrink-0 ml-4">
                   <div className="text-right hidden md:block">
-                    <p className="text-xs text-slate-400">Check-in</p>
-                    <p className="text-sm font-medium text-slate-700">
-                      {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Check-in</p>
+                    <p className="text-xs font-bold text-slate-700">
+                      {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                   <div className="text-right hidden md:block">
-                    <p className="text-xs text-slate-400">Total</p>
-                    <p className="text-sm font-bold text-slate-900">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Settlement</p>
+                    <p className="text-xs font-black text-slate-950">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusStyles(booking.booking_status)}`}>
-                    {booking.booking_status.replace('-', ' ').toUpperCase()}
-                  </span>
+                  <div className={`px-2.5 py-1 rounded border text-[10px] font-black uppercase tracking-tighter ${getStatusStyles(booking.booking_status)}`}>
+                    {booking.booking_status.replace('-', ' ')}
+                  </div>
                 </div>
               </div>
             );
           })}
           {recentBookings.length === 0 && (
-            <div className="px-6 py-12 text-center text-slate-400">
-              <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p>No bookings yet</p>
+            <div className="px-6 py-16 text-center">
+              <Calendar className="w-12 h-12 text-slate-100 mx-auto mb-4" />
+              <h3 className="text-sm font-bold text-slate-900">No recent activity</h3>
+              <p className="text-xs text-slate-500 mt-1">Activity logs will appear here once bookings are created.</p>
             </div>
           )}
         </div>

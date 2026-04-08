@@ -32,7 +32,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'booking_id' => 'required|exists:bookings,booking_id',
             'amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|in:credit_card,debit_card,bank_transfer,gcash,paypal,paymaya',
+            'payment_method' => 'required|in:credit_card,debit_card,bank_transfer,gcash,paypal,paymaya,cash',
             'status' => 'in:pending,completed,failed,refunded',
             'transaction_id' => 'nullable|string',
             'payment_date' => 'nullable|date',

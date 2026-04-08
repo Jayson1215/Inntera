@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { AlertCircle, Hotel } from 'lucide-react';
+import { AlertCircle, Hotel, UserPlus, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 
@@ -23,16 +22,12 @@ export function SignUpPage() {
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<'guest' | 'staff'>('guest');
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -48,17 +43,13 @@ export function SignUpPage() {
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     const result = await signup({
       firstName: formData.firstName,
@@ -66,11 +57,13 @@ export function SignUpPage() {
       lastName: formData.lastName,
       email: formData.email,
       password: formData.password,
+      role,
     });
 
-    if (result.success) {
+    if (result.success && result.user) {
       toast.success('Account created successfully! Welcome to Inntera');
-      navigate('/client/dashboard');
+      if (result.user.role === 'staff') navigate('/staff/dashboard');
+      else navigate('/client/dashboard');
     } else {
       toast.error(result.error || 'Failed to create account');
     }
@@ -78,179 +71,168 @@ export function SignUpPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const inputClass = (field: string) =>
+    `bg-stone-50/50 border ${errors[field] ? 'border-red-300' : 'border-stone-200'} text-stone-800 placeholder:text-stone-300 h-12 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-300 transition-all font-medium px-4`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-cyan-50 flex flex-col font-sans">
-      {/* Navigation */}
-      <nav className="bg-transparent sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-sky-500 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
-                <Hotel className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-[#FAFAF8] flex font-sans">
+      {/* Left Panel — Branding */}
+      <div className="hidden lg:flex lg:w-5/12 relative items-center justify-center p-16 bg-gradient-to-br from-amber-50 via-amber-50/50 to-[#FAFAF8] border-r border-stone-100">
+        <div className="absolute top-1/3 right-0 w-80 h-80 bg-amber-100/30 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-amber-200/20 rounded-full blur-[100px]"></div>
+        
+        <div className="relative z-10 max-w-lg">
+          <Link to="/" className="flex items-center gap-3 mb-16 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-xl shadow-amber-500/15 group-hover:scale-105 transition-transform">
+              <Hotel className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-black tracking-tight">
+              <span className="text-amber-600">Inn</span><span className="text-stone-800">tera</span>
+            </span>
+          </Link>
+
+          <h2 className="text-5xl font-black text-stone-800 tracking-tight leading-[1.1] mb-6">
+            Join the<br />
+            <span className="text-amber-600">Experience.</span>
+          </h2>
+          <p className="text-stone-400 text-sm leading-relaxed max-w-sm mb-12">
+            Create your account to unlock exclusive rates, manage reservations, and enjoy premium stays across Butuan City.
+          </p>
+
+          <div className="space-y-4 pt-8 border-t border-stone-200/60">
+            {[
+              { icon: '✨', text: 'Exclusive member-only rates' },
+              { icon: '🔒', text: 'Secure & encrypted credentials' },
+              { icon: '⚡', text: 'Instant booking confirmations' },
+            ].map(perk => (
+              <div key={perk.text} className="flex items-center gap-3">
+                <span className="text-sm">{perk.icon}</span>
+                <span className="text-stone-400 text-xs font-medium">{perk.text}</span>
               </div>
-              <span className="text-2xl font-black text-sky-800 tracking-tighter">Inntera</span>
-            </Link>
+            ))}
           </div>
         </div>
-      </nav>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-black text-[#0f172a] mb-2 tracking-wide italic uppercase">Create Account</h1>
-            <p className="text-slate-500 font-bold tracking-[0.05em] text-xs uppercase">Join Inntera today and start booking your dream hotels</p>
+      {/* Right Panel — Form */}
+      <div className="w-full lg:w-7/12 flex items-center justify-center px-6 py-10 relative z-10">
+        <div className="w-full max-w-lg">
+          {/* Mobile Logo */}
+          <div className="lg:hidden mb-10 text-center">
+            <Link to="/" className="inline-flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/15">
+                <Hotel className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-black tracking-tight">
+                <span className="text-amber-600">Inn</span><span className="text-stone-800">tera</span>
+              </span>
+            </Link>
           </div>
 
-          {/* Sign Up Card */}
-          <Card className="border-2 border-sky-100 !bg-white shadow-2xl shadow-sky-200/20 rounded-[2.5rem] overflow-hidden">
-            <CardContent className="p-8 sm:p-12 !bg-white">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* First Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-black font-semibold ml-1">First Name</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      type="text"
-                      placeholder="John"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      className={`bg-white border-2 ${errors.firstName ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
-                    />
-                  </div>
-
-                  {/* Middle Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="middleName" className="text-black font-semibold ml-1">Middle Name</Label>
-                    <Input
-                      id="middleName"
-                      name="middleName"
-                      type="text"
-                      placeholder="Optional"
-                      value={formData.middleName}
-                      onChange={handleInputChange}
-                      className={`bg-white border-2 border-slate-100 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
-                    />
-                  </div>
-
-                  {/* Last Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-black font-semibold ml-1">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      type="text"
-                      placeholder="Doe"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      className={`bg-white border-2 ${errors.lastName ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-black font-semibold ml-1">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className={`bg-white border-2 ${errors.email ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-black font-semibold ml-1">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="At least 6 characters"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className={`bg-white border-2 ${errors.password ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5 pr-12`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-500 transition-colors text-sm font-bold"
-                    >
-                      {showPassword ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-black font-semibold ml-1">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Re-enter your password"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className={`bg-white border-2 ${errors.confirmPassword ? 'border-red-500' : 'border-slate-100'} text-slate-900 placeholder:text-slate-400 h-12 rounded-xl focus:ring-2 focus:ring-sky-100 transition-all font-bold px-5`}
-                  />
-                </div>
-
-                {/* Error Summary */}
-                {Object.keys(errors).length > 0 && (
-                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-600 font-medium">Please fix the errors above to continue.</p>
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-14 bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white font-black rounded-xl transition-all shadow-lg shadow-sky-100 mt-6 text-sm uppercase tracking-widest"
-                >
-                  {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
-                </Button>
-              </form>
-
-              {/* Sign In Link */}
-              <div className="mt-8 text-center border-t border-slate-100 pt-8">
-                <p className="text-slate-500 font-medium text-sm">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-sky-600 hover:text-sky-700 font-bold text-sm">
-                    Sign In
-                  </Link>
-                </p>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100">
+                <UserPlus size={14} className="text-amber-600" />
               </div>
-            </CardContent>
-          </Card>
+              <span className="text-[10px] font-bold text-amber-600/60 uppercase tracking-[0.3em]">New Account</span>
+            </div>
+            <h1 className="text-3xl font-black text-stone-800 tracking-tight mb-2">Create Account</h1>
+            <p className="text-stone-400 text-sm">Fill in your details to get started.</p>
+          </div>
 
-          {/* Demo Info */}
-          <div className="mt-8 p-6 bg-white rounded-[1.5rem] border-2 border-sky-50 shadow-sm text-center">
-            <p className="text-xs text-slate-500 font-bold tracking-tight">
-              <span className="uppercase text-sky-600 mr-2">Demo Access:</span>
-              admin@inntera.com / admin123
-            </p>
+          {/* Form Card */}
+          <div className="bg-white border border-stone-100 rounded-3xl p-8 sm:p-10 shadow-sm">
+            {/* Role Selector */}
+            <div className="mb-8 p-1 bg-stone-50 border border-stone-100 rounded-xl flex gap-1">
+              <button
+                type="button"
+                onClick={() => setRole('guest')}
+                className={`flex-1 py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all font-bold text-[10px] uppercase tracking-widest ${
+                  role === 'guest'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-sm'
+                    : 'text-stone-400 hover:text-stone-600'
+                }`}
+              >
+                <Sparkles size={12} />
+                Guest
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('staff')}
+                className={`flex-1 py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all font-bold text-[10px] uppercase tracking-widest ${
+                  role === 'staff'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-sm'
+                    : 'text-stone-400 hover:text-stone-600'
+                }`}
+              >
+                <Hotel size={12} />
+                Staff
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">First Name</Label>
+                  <Input name="firstName" placeholder="John" value={formData.firstName} onChange={handleInputChange} className={inputClass('firstName')} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">M.I.</Label>
+                  <Input name="middleName" placeholder="A" value={formData.middleName} onChange={handleInputChange} className="bg-stone-50/50 border border-stone-200 text-stone-800 placeholder:text-stone-300 h-12 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-300 transition-all font-medium px-4" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">Last Name</Label>
+                  <Input name="lastName" placeholder="Doe" value={formData.lastName} onChange={handleInputChange} className={inputClass('lastName')} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">Email Address</Label>
+                <Input name="email" type="email" placeholder="john@example.com" value={formData.email} onChange={handleInputChange} className={inputClass('email')} />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">Password</Label>
+                <div className="relative">
+                  <Input name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={handleInputChange} className={`${inputClass('password')} pr-14`} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300 hover:text-amber-600 transition-colors">
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">Confirm Password</Label>
+                <Input name="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.confirmPassword} onChange={handleInputChange} className={inputClass('confirmPassword')} />
+              </div>
+
+              {Object.values(errors).some(e => e) && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-600 font-medium">{Object.values(errors).filter(e => e).join('. ')}.</p>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-13 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-amber-500/10 mt-2 text-xs uppercase tracking-widest flex items-center justify-center"
+              >
+                {isLoading ? 'Creating Account...' : 'Create Account'}
+              </Button>
+            </form>
+
+            <div className="mt-8 text-center pt-6 border-t border-stone-50">
+              <p className="text-stone-400 font-medium text-xs">
+                Already have an account?{' '}
+                <Link to="/login" className="text-amber-600 hover:text-amber-700 font-bold transition-colors">Sign In</Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

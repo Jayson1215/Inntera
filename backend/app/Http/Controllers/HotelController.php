@@ -60,16 +60,23 @@ class HotelController extends Controller
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
             'state' => 'nullable|string|max:255',
-            'country' => 'required|string|max:255',
+            'country' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'phone' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'email' => 'nullable|email|max:255',
             'star_rating' => 'nullable|integer|min:1|max:5',
+            'image_url' => 'nullable|string',
+            'opens_at' => 'nullable|string|max:100',
+            'closes_at' => 'nullable|string|max:100',
         ]);
 
-        $hotel = Hotel::create($validated);
+        $hotel = Hotel::create(array_merge($validated, [
+            'display_id' => 'HTL-' . strtoupper(bin2hex(random_bytes(4))),
+            'country' => $validated['country'] ?? 'Philippines',
+            'email' => $validated['email'] ?? 'contact@hotel.com',
+        ]));
 
         return response()->json(['success' => true, 'data' => $hotel], 201);
     }
@@ -90,8 +97,11 @@ class HotelController extends Controller
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'phone' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255',
+            'email' => 'nullable|email|max:255',
             'star_rating' => 'nullable|integer|min:1|max:5',
+            'image_url' => 'nullable|string',
+            'opens_at' => 'nullable|string|max:100',
+            'closes_at' => 'nullable|string|max:100',
             'total_rooms' => 'sometimes|integer|min:0',
             'available_rooms' => 'sometimes|integer|min:0',
         ]);
