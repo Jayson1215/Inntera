@@ -46,6 +46,7 @@ export interface RoomType {
   bed_type: 'Single' | 'Double';
   amenities_summary?: string;
   amenities?: Amenity[];
+  image_url?: string;
 }
 
 // Room Amenities (Junction)

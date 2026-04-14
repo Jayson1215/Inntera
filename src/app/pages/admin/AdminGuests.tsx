@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Loader2, Search, Filter, Mail, Phone, Trash2, UserX, UserCheck, Shield, UserPlus, Star } from 'lucide-react';
+import { Loader2, Search, Filter, Mail, Phone, Trash2, UserX, UserCheck, Shield, UserPlus, Star, Edit2, Check } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { adminService } from '../../lib/api';
 import { toast } from 'sonner';
 
@@ -12,6 +13,9 @@ export function AdminGuests() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
+  const [editingGuestId, setEditingGuestId] = useState<number | null>(null);
+  const [editFormData, setEditFormData] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBan = async (id: number, currentStatus: string) => {
     const action = currentStatus === 'banned' ? 'UNBAN' : 'BAN';
@@ -49,6 +53,41 @@ export function AdminGuests() {
       toast.error('An error occurred');
     } finally {
       setIsProcessing(null);
+    }
+  };
+
+  const handleEditClick = (guest: any) => {
+    setEditingGuestId(guest.id);
+    setEditFormData({
+      first_name: guest.first_name,
+      last_name: guest.last_name,
+      email: guest.email,
+      phone: guest.phone,
+    });
+  };
+
+  const handleCloseEdit = () => {
+    setEditingGuestId(null);
+    setEditFormData(null);
+  };
+
+  const handleSaveGuest = async () => {
+    if (!editFormData || !editingGuestId) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await adminService.updateGuest(editingGuestId, editFormData);
+      if (result.success) {
+        toast.success('Guest profile updated successfully');
+        await refreshData();
+        handleCloseEdit();
+      } else {
+        toast.error(result.error || 'Failed to update guest');
+      }
+    } catch (error) {
+      toast.error('Error updating guest');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -187,6 +226,13 @@ export function AdminGuests() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                         <button
+                          onClick={() => handleEditClick(guest)}
+                          className="p-2 rounded bg-white text-slate-600 border border-slate-200 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm"
+                          title="Edit Guest"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleBan(guest.id, guest.status || 'active')}
                           disabled={isProcessing === guest.id}
                           className={`p-2 rounded border transition-all ${
@@ -224,6 +270,84 @@ export function AdminGuests() {
           )}
         </div>
       </div>
+
+      {/* Edit Guest Modal */}
+      <Dialog open={editingGuestId !== null} onOpenChange={(open) => { if (!open) handleCloseEdit(); }}>
+        <DialogContent className="bg-white border-slate-200 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-slate-950">Edit Guest Profile</DialogTitle>
+          </DialogHeader>
+          {editFormData && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
+                  <Input
+                    value={editFormData.first_name || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
+                    className="bg-slate-50 border-slate-200"
+                    placeholder="First name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
+                  <Input
+                    value={editFormData.last_name || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
+                    className="bg-slate-50 border-slate-200"
+                    placeholder="Last name"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                <Input
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="bg-slate-50 border-slate-200"
+                  placeholder="Enter email"
+                  type="email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
+                <Input
+                  value={editFormData.phone || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  className="bg-slate-50 border-slate-200"
+                  placeholder="Enter phone number"
+                  type="tel"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-4">
+                <button
+                  onClick={handleCloseEdit}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveGuest}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all font-medium text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

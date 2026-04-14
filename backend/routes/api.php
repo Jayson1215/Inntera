@@ -20,8 +20,10 @@ use App\Http\Controllers\AdminController;
 // Admin Management
 Route::prefix('admin')->group(function () {
     Route::patch('/guests/{id}/ban', [AdminController::class, 'toggleBanGuest']);
+    Route::patch('/guests/{id}', [AdminController::class, 'updateGuest']);
     Route::delete('/guests/{id}', [AdminController::class, 'removeGuest']);
     Route::patch('/staff/{id}/suspend', [AdminController::class, 'toggleSuspendStaff']);
+    Route::patch('/staff/{id}', [AdminController::class, 'updateStaff']);
     Route::delete('/staff/{id}', [AdminController::class, 'removeStaff']);
 });
 

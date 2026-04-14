@@ -21,7 +21,7 @@ class SystemController extends Controller
         // Limit to last 100 bookings for faster initial load
         $bookings = Booking::with([
             'guest:id,first_name,last_name,display_id,email',
-            'hotel:id,name,city',
+            'hotel:id,name,city,image_url',
             'bookingRooms.room', // Remove deep select to ensure full room data for the 100 bookings
             'bookingRooms.room.roomType',
             'payments',

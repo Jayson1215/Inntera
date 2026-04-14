@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
 import { Calendar, MapPin, ArrowRight, Search, BedDouble, Clock, Star, Sparkles, Shield, Globe, ChevronRight, Hotel } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { cn } from '../../lib/utils';
 
 export function ClientDashboard() {
   const { user } = useAuth();
@@ -11,11 +12,26 @@ export function ClientDashboard() {
   const [greeting, setGreeting] = useState('Good evening');
 
   const guest = guests.find(g => g.id === user?.id);
-  const userBookings = contextBookings.filter(b => b.guest_id === user?.id);
-  const upcomingBookings = userBookings.filter(b => b.booking_status === 'confirmed' || b.booking_status === 'pending');
+  
+  // Updated filtering logic to match ClientBookings.tsx
+  const userBookings = contextBookings.filter(b => {
+    // Exact match if user.id matches guest_id
+    if (user?.id && b.guest_id === user.id) return true;
+    
+    // Fallback: Check if the guest associated with this booking has the same email as the logged-in user
+    const bookingGuest = b.guest || guests.find(g => g.id === b.guest_id);
+    if (bookingGuest && user?.email && bookingGuest.email === user.email) return true;
+
+    return false;
+  });
+
+  const upcomingBookings = userBookings.filter(b => ['confirmed', 'pending', 'reserved'].includes(b.booking_status));
   const activeBooking = userBookings.find(b => b.booking_status === 'checked-in');
   const completedBookings = userBookings.filter(b => b.booking_status === 'checked-out');
-  const guestName = guest ? `${guest.first_name}` : (user?.name?.split(' ')[0] || 'Guest');
+  
+  // Prioritize Guest profile name from BookingContext, fallback to Auth name
+  const guestFirstName = guest?.first_name || user?.name?.split(' ')[0] || 'Guest';
+  const displayFullName = guest ? `${guest.first_name} ${guest.last_name}` : (user?.name || 'Guest');
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -42,11 +58,11 @@ export function ClientDashboard() {
         <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-3xl font-black text-white shadow-xl shadow-amber-500/15">
-              {guestName.charAt(0).toUpperCase()}
+              {(guestFirstName as string).charAt(0).toUpperCase()}
             </div>
             <div>
               <p className="text-amber-600/60 text-[10px] font-bold uppercase tracking-[0.3em] mb-1">{greeting}</p>
-              <h1 className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight">{guestName}</h1>
+              <h1 className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight">{displayFullName}</h1>
               <div className="flex items-center gap-3 mt-2">
                 <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200/60">
                   <Sparkles size={10} className="inline mr-1" />Diamond Member
@@ -189,37 +205,43 @@ export function ClientDashboard() {
                     <div 
                       key={booking.booking_id} 
                       onClick={() => navigate('/client/bookings')}
-                      className="bg-white rounded-2xl p-5 border border-stone-100 hover:border-amber-200 transition-all cursor-pointer group hover:shadow-md hover:shadow-amber-500/5"
+                      className="bg-white rounded-2xl p-4 border border-stone-100 hover:border-amber-200 transition-all cursor-pointer group hover:shadow-lg hover:shadow-amber-500/5 flex items-center gap-6"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center group-hover:bg-amber-100 transition-colors border border-amber-100">
-                            <Hotel className="text-amber-600" size={22} />
+                      {/* Property Image Thumbnail */}
+                      <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 relative border border-stone-100 bg-stone-50">
+                        {hotel?.image_url ? (
+                          <img src={hotel.image_url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-stone-200">
+                             <Hotel size={24} />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-3 mb-1">
-                              <h4 className="font-bold text-stone-900 text-sm tracking-tight">{hotel?.name}</h4>
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest ${
-                                booking.booking_status === 'confirmed' 
-                                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/60' 
-                                  : 'bg-amber-50 text-amber-600 border border-amber-200/60'
-                              }`}>
-                                {booking.booking_status}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-stone-600">
-                              <span className="text-[10px] font-medium flex items-center gap-1">
-                                <Calendar size={10} />
-                                {checkin.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {checkout.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </span>
-                              <span className="text-stone-200">•</span>
-                              <span className="text-[10px] font-medium">{nights} night{nights > 1 ? 's' : ''}</span>
-                              <span className="text-stone-200">•</span>
-                              <span className="text-[10px] font-medium text-stone-400">{booking.booking_reference}</span>
-                            </div>
-                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1.5">
+                          <span className={cn(
+                             "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest border",
+                             booking.booking_status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'
+                          )}>
+                             {booking.booking_status}
+                          </span>
+                          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">REF: {booking.booking_reference}</span>
                         </div>
-                        <ArrowRight className="text-stone-200 group-hover:text-amber-500 transition-colors" size={18} />
+                        <h3 className="text-base font-bold text-stone-900 tracking-tight group-hover:text-amber-600 transition-colors">{hotel?.name}</h3>
+                        <div className="flex flex-wrap items-center gap-4 text-[10px] font-medium text-stone-500 mt-1">
+                          <span className="flex items-center gap-1.5"><Calendar size={12} className="text-amber-500" /> {checkin.toLocaleDateString()} — {checkout.toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1.5"><Clock size={12} className="text-stone-400" /> {nights} nights</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                         <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-1">Total Stay</p>
+                         <p className="text-xl font-black text-stone-900 tracking-tighter">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
+                         <div className="flex items-center justify-end gap-1 mt-1 text-[10px] font-bold text-amber-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
+                            Details <ChevronRight size={10} />
+                         </div>
                       </div>
                     </div>
                   );

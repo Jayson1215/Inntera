@@ -148,10 +148,14 @@ export function ClientHotelDetail() {
                     <Card key={roomType.room_type_id} className="bg-white border border-stone-100 overflow-hidden shadow-sm group hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/5 transition-all duration-300">
                       <CardContent className="p-0">
                         <div className="flex flex-col md:flex-row">
-                          <div className="w-full md:w-56 h-48 md:h-auto bg-stone-50 flex items-center justify-center relative flex-shrink-0">
-                             <div className="text-6xl opacity-10">🛏️</div>
+                          <div className="w-full md:w-56 h-48 md:h-auto bg-stone-50 flex items-center justify-center relative flex-shrink-0 overflow-hidden">
+                             {roomType.image_url ? (
+                               <img src={roomType.image_url} alt={roomType.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                             ) : (
+                               <div className="text-6xl opacity-10">🛏️</div>
+                             )}
                              <div className="absolute top-4 left-4">
-                                <Badge className="bg-stone-800 text-white rounded-full border-0 text-[9px] font-bold uppercase tracking-wider px-3">Level {representativeRoom?.floor || '0'}</Badge>
+                                <Badge className="bg-stone-800/80 backdrop-blur-md text-white rounded-full border-0 text-[9px] font-bold uppercase tracking-wider px-3">Level {representativeRoom?.floor || '0'}</Badge>
                              </div>
                           </div>
                           

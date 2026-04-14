@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
 import { 
   MapPin, 
   Users, 
@@ -33,8 +34,8 @@ export function ClientReservationPage() {
 
   const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
   const [checkOut, setCheckOut] = useState<Date | undefined>(addDays(new Date(), 1));
-  const [adults, setAdults] = useState('2');
-  const [children, setChildren] = useState('0');
+  const [adults] = useState('2');
+  const [children] = useState('0');
   
   const [guestFirstName, setGuestFirstName] = useState(user?.name?.split(' ')[0] || '');
   const [guestLastName, setGuestLastName] = useState(user?.name?.split(' ')[1] || '');
@@ -108,21 +109,42 @@ export function ClientReservationPage() {
     );
 
     if (!targetRoom) {
-      toast.error('No available rooms found for this suite type');
+      toast.error('⚠️ This room is no longer available. Please go back and select another room.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!roomType) {
+      toast.error('Room type information not loaded. Please refresh and try again.');
       setIsSubmitting(false);
       return;
     }
 
     const nightlyRate = Number(roomType?.base_price || 0);
     const numNights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 1;
-    const baseTotal = nightlyRate * Math.max(1, numNights);
+    
+    if (numNights <= 0) {
+      toast.error('Check-out date must be after check-in date');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    const baseTotal = nightlyRate * numNights;
     const discountAmount = discountType !== 'None' ? baseTotal * 0.20 : 0;
     const finalTotal = baseTotal - discountAmount;
     const downpaymentAmount = finalTotal * 0.30;
     
+    if (finalTotal < 1 || downpaymentAmount < 1) {
+      toast.error('Booking total must be at least ₱1');
+      setIsSubmitting(false);
+      return;
+    }
+    
     const bookingData = {
+      // Don't send guest_id if it's actually a user.id and not a guest_id
+      // The backend will find/create the guest using guest_details.email
+      guest_id: null,
       hotel_id: hotel?.id,
-      guest_id: user?.id || 999,
       checkin_date: checkIn?.toISOString(),
       checkout_date: checkOut?.toISOString(),
       total_cost: finalTotal,
@@ -155,10 +177,12 @@ export function ClientReservationPage() {
     const result = await createBooking(bookingData);
 
     if (result.success) {
-      toast.success('Your reservation has been confirmed!');
+      toast.success('Your reservation has been submitted! Status: Pending Admin Review');
       setTimeout(() => navigate('/client/bookings'), 2000);
     } else {
-      toast.error(result.error || 'Failed to complete reservation');
+      const errorMsg = result.error || 'Failed to complete reservation';
+      console.error('Booking error:', errorMsg);
+      toast.error(errorMsg);
     }
     
     setIsSubmitting(false);
@@ -422,6 +446,27 @@ export function ClientReservationPage() {
                 </div>
 
                 <div className="p-6 md:p-8 space-y-8">
+                  {/* Room Image in Sidebar */}
+                  <div className="rounded-2xl overflow-hidden h-32 relative group">
+                    {roomType.image_url ? (
+                      <img 
+                        src={roomType.image_url} 
+                        alt={roomType.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-stone-50 flex items-center justify-center text-4xl opacity-20">🛏️</div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-3 left-3 flex flex-col">
+                      <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">{roomType.bed_type}</span>
+                      <span className="text-sm font-bold text-white tracking-tight leading-none mt-1">{roomType.name}</span>
+                    </div>
+                    <div className="absolute top-3 right-3">
+                       <Badge className="bg-amber-600/90 backdrop-blur-md text-white border-0 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">Premium Suite</Badge>
+                    </div>
+                  </div>
+
                   {/* Date Pickers */}
                   <div className="grid grid-cols-2 gap-px bg-stone-100 rounded-2xl overflow-hidden border border-stone-100">
                     <Popover>

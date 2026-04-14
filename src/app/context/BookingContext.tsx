@@ -134,9 +134,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         await fetchData(true);
         return { success: true, data: res.data };
       }
-      return { success: false, error: res.error || 'Operation failed' };
-    } catch (error) {
-      return { success: false, error: 'An unexpected error occurred' };
+      
+      const errorStr = res.error || 
+                      (res.errors ? Object.values(res.errors)[0] : null) || 
+                      'Operation failed';
+                      
+      return { success: false, error: String(errorStr) };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'An unexpected error occurred' };
     }
   };
 

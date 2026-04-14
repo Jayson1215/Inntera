@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useEffect } from 'react';
-import { BookingProvider } from '../context/BookingContext';
+import { useEffect, useMemo } from 'react';
+import { BookingProvider, useBooking } from '../context/BookingContext';
 import { 
   Search,
   Calendar,
@@ -14,10 +14,19 @@ import { Button } from '../components/ui/button';
 import { MobileNav } from '../components/MobileNav';
 import { NotificationBell } from '../components/ui/NotificationBell';
 
-export function ClientLayout() {
+// Inner component to access BookingContext
+function ClientLayoutContent() {
   const { user, logout } = useAuth();
+  const { guests } = useBooking();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const guestRecord = useMemo(() => 
+    guests.find(g => g.email === user?.email),
+    [guests, user?.email]
+  );
+
+  const displayFirstName = guestRecord?.first_name || user?.name?.split(' ')[0] || 'Guest';
 
   useEffect(() => {
     if (!user || user.role !== 'guest') {
@@ -100,7 +109,7 @@ export function ClientLayout() {
                   <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-200/60">
                     <Sparkles size={12} className="text-amber-600" />
                   </div>
-                  <span className="text-xs font-bold text-stone-500">{user?.name || 'Guest'}</span>
+                  <span className="text-xs font-bold text-stone-500 truncate max-w-[120px]">{guestRecord ? `${guestRecord.first_name} ${guestRecord.last_name}` : (user?.name || 'Guest')}</span>
                 </div>
                 <Button
                   variant="ghost"
@@ -116,7 +125,7 @@ export function ClientLayout() {
             {/* Mobile Actions */}
             <div className="flex md:hidden items-center gap-2">
                <NotificationBell />
-               <span className="text-xs font-bold text-stone-500 truncate max-w-[80px]">{user?.name?.split(' ')[0] || 'Guest'}</span>
+               <span className="text-xs font-bold text-stone-500 truncate max-w-[80px]">{displayFirstName}</span>
                <Button
                   variant="ghost"
                   size="sm"
@@ -132,13 +141,19 @@ export function ClientLayout() {
 
       {/* Main content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
-        <BookingProvider>
-          <Outlet />
-        </BookingProvider>
+        <Outlet />
       </main>
 
       {/* Mobile Navigation Bar */}
       <MobileNav />
     </div>
+  );
+}
+
+export function ClientLayout() {
+  return (
+    <BookingProvider>
+      <ClientLayoutContent />
+    </BookingProvider>
   );
 }

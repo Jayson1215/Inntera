@@ -488,6 +488,13 @@ export const adminService = {
     });
   },
 
+  async updateGuest(id: number, data: any): Promise<ApiResponse<any>> {
+    return apiFetch<any>(`/admin/guests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   async removeGuest(id: number): Promise<ApiResponse<void>> {
     return apiFetch<void>(`/admin/guests/${id}`, {
       method: 'DELETE',
@@ -497,6 +504,13 @@ export const adminService = {
   async suspendStaff(id: number): Promise<ApiResponse<{ status: string }>> {
     return apiFetch<{ status: string }>(`/admin/staff/${id}/suspend`, {
       method: 'PATCH',
+    });
+  },
+
+  async updateStaff(id: number, data: any): Promise<ApiResponse<any>> {
+    return apiFetch<any>(`/admin/staff/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
   },
 

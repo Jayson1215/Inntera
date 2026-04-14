@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Loader2, Mail, Building2, Shield, Search, Filter, Trash2, UserX, UserCheck, UserPlus } from 'lucide-react';
+import { Loader2, Mail, Building2, Shield, Search, Filter, Trash2, UserX, UserCheck, UserPlus, Edit2, X, Check } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { adminService } from '../../lib/api';
 import { toast } from 'sonner';
 
@@ -13,6 +14,9 @@ export function AdminStaff() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [hotelFilter, setHotelFilter] = useState('all');
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
+  const [editingStaffId, setEditingStaffId] = useState<number | null>(null);
+  const [editFormData, setEditFormData] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSuspend = async (id: number, currentStatus: string) => {
     if (!window.confirm(`Are you sure you want to ${currentStatus === 'suspended' ? 'ACTIVATE' : 'SUSPEND'} this staff member?`)) return;
@@ -49,6 +53,41 @@ export function AdminStaff() {
       toast.error('An error occurred');
     } finally {
       setIsProcessing(null);
+    }
+  };
+
+  const handleEditClick = (member: any) => {
+    setEditingStaffId(member.id);
+    setEditFormData({
+      name: member.name,
+      email: member.user?.email,
+      position: member.role,
+      hotel_id: member.hotel_id,
+    });
+  };
+
+  const handleCloseEdit = () => {
+    setEditingStaffId(null);
+    setEditFormData(null);
+  };
+
+  const handleSaveStaff = async () => {
+    if (!editFormData || !editingStaffId) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await adminService.updateStaff(editingStaffId, editFormData);
+      if (result.success) {
+        toast.success('Staff updated successfully');
+        await refreshData();
+        handleCloseEdit();
+      } else {
+        toast.error(result.error || 'Failed to update staff');
+      }
+    } catch (error) {
+      toast.error('Error updating staff');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -208,6 +247,13 @@ export function AdminStaff() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                         <button
+                          onClick={() => handleEditClick(member)}
+                          className="p-1.5 rounded bg-white text-slate-600 border border-slate-200 hover:border-emerald-500 hover:text-emerald-600 transition-all"
+                          title="Edit Staff"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleSuspend(member.id, (member as any).status || 'active')}
                           disabled={isProcessing === member.id}
                           className={`p-1.5 rounded border transition-all ${
@@ -245,6 +291,89 @@ export function AdminStaff() {
           )}
         </div>
       </div>
+
+      {/* Edit Staff Modal */}
+      <Dialog open={editingStaffId !== null} onOpenChange={(open) => { if (!open) handleCloseEdit(); }}>
+        <DialogContent className="bg-white border-slate-200 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-slate-950">Edit Staff Member</DialogTitle>
+          </DialogHeader>
+          {editFormData && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
+                <Input
+                  value={editFormData.name || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="bg-slate-50 border-slate-200"
+                  placeholder="Enter staff name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                <Input
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="bg-slate-50 border-slate-200"
+                  placeholder="Enter email"
+                  type="email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Position</label>
+                <Select value={editFormData.position || ''} onValueChange={(value) => setEditFormData({ ...editFormData, position: value })}>
+                  <SelectTrigger className="bg-slate-50 border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="housekeeping">Housekeeping</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Property</label>
+                <Select value={editFormData.hotel_id?.toString() || ''} onValueChange={(value) => setEditFormData({ ...editFormData, hotel_id: parseInt(value) })}>
+                  <SelectTrigger className="bg-slate-50 border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hotels.map(h => (
+                      <SelectItem key={h.id} value={h.id.toString()}>{h.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 justify-end pt-4">
+                <button
+                  onClick={handleCloseEdit}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveStaff}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all font-medium text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

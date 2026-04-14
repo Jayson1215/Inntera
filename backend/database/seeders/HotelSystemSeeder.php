@@ -41,6 +41,15 @@ class HotelSystemSeeder extends Seeder
             ]
         );
 
+        $guestUser = User::updateOrCreate(
+            ['email' => 'jayson.velasco@urios.edu.ph'],
+            [
+                'name' => 'Guest',
+                'password' => '09685728496',
+                'role' => 'guest',
+            ]
+        );
+
         // ── Hotels (Butuan City Philippines) ──────────────────
         $hotelsData = [
             [
@@ -53,6 +62,7 @@ class HotelSystemSeeder extends Seeder
                 'phone' => '+63 85 815 0088',
                 'email' => 'info@watergate.com',
                 'star_rating' => 4,
+                'image_url' => 'https://q-xx.bstatic.com/xdata/images/hotel/max500/81119254.jpg?k=47091668cc3b19385b36fd421db5d920b7d50a7f268e99635e85936d1660fe90&o=',
             ],
             [
                 'name' => 'Almont Inland Resort',
@@ -64,6 +74,7 @@ class HotelSystemSeeder extends Seeder
                 'phone' => '+63 85 342 7414',
                 'email' => 'stay@almontinland.com',
                 'star_rating' => 4,
+                'image_url' => 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhIVndjME5J7tmxlO8paUt8IH5eOSGauXU1aIElW32iFnMaROFkKF4SfFw_s7Mz7qrkOxvm1pyUtcPhN24zJaLORq0rgDNOv1CNSkvhmVFP-UwhyphenhyphenBc6mK3hGs6G26TZjRTX7uOsZBj2Lg4/s1600/IMG_20191010_172820-01.jpeg',
             ],
             [
                 'name' => 'Hotel Oazis Butuan',
@@ -75,6 +86,7 @@ class HotelSystemSeeder extends Seeder
                 'phone' => '+63 85 342 8888',
                 'email' => 'info@hoteloazis.com',
                 'star_rating' => 4,
+                'image_url' => 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/6a/9d/78/hotel-oazis.jpg?w=900&h=500&s=1',
             ],
             [
                 'name' => 'Go Hotels Butuan',
@@ -86,6 +98,7 @@ class HotelSystemSeeder extends Seeder
                 'phone' => '+63 922 464 6835',
                 'email' => 'reservations@gohotels.ph',
                 'star_rating' => 3,
+                'image_url' => 'https://images.trvl-media.com/lodging/11000000/10470000/10467300/10467233/45b65742.jpg?impolicy=resizecrop&rw=575&rh=575&ra=fill',
             ]
         ];
 

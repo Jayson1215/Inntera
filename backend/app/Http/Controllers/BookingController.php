@@ -7,9 +7,11 @@ use App\Models\Booking;
 use App\Models\BookingRoom;
 use App\Models\Room;
 use App\Models\Payment;
+use App\Models\Guest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\User;
 use App\Notifications\RoomBookedNotification;
 use App\Notifications\BookingConfirmedNotification;
@@ -26,7 +28,7 @@ class BookingController extends Controller
     {
         $query = Booking::with([
             'guest:id,first_name,last_name,display_id,email',
-            'hotel:id,name,city',
+            'hotel:id,name,city,image_url',
             'bookingRooms.room:room_id,room_number,floor,status',
             'bookingRooms.room.roomType:room_type_id,name,base_price',
             'payments:payment_id,booking_id,amount,payment_method,status',
@@ -56,7 +58,7 @@ class BookingController extends Controller
     {
         $booking->load([
             'guest:id,first_name,last_name,display_id,email,phone',
-            'hotel:id,name,city,address',
+            'hotel:id,name,city,address,image_url',
             'bookingRooms.room.roomType',
             'payments',
             'charges',
@@ -73,44 +75,143 @@ class BookingController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        /** @var \App\Models\Guest $guestClass */
+        $guestClass = Guest::class;
+
+        // Pre-process guest_id: if it's provided but doesn't exist in guests table, 
+        // we'll treat it as null and rely on guest_details to find/create the guest.
+        // This handles cases where frontend sends a User ID as guest_id.
+        if ($request->has('guest_id') && $request->filled('guest_id')) {
+            if (!$guestClass::where('id', $request->input('guest_id'))->exists()) {
+                $request->merge(['guest_id' => null]);
+            }
+        }
+
         $validated = $request->validate([
-            'guest_id' => 'required|exists:guests,id',
-            'hotel_id' => 'required|exists:hotels,id',
+            'guest_id' => 'nullable|integer', // Removed exists:guests,id for automatic guest creation
+            'guest_details' => 'nullable|array',
+            'guest_details.first_name' => 'nullable|string|max:255',
+            'guest_details.last_name' => 'nullable|string|max:255',
+            'guest_details.email' => 'nullable|email|max:255',
+            'guest_details.phone' => 'nullable|string|max:20',
+            'guest_details.address' => 'nullable|string|max:500',
+            'hotel_id' => 'required|integer|exists:hotels,id',
             'checkin_date' => 'required|date',
             'checkout_date' => 'required|date|after:checkin_date',
-            'total_cost' => 'required|numeric|min:0',
+            'total_cost' => 'required|numeric|min:1',
             'notes' => 'nullable|string',
-            'rooms' => 'sometimes|array',
-            'rooms.*.room_id' => 'required_with:rooms|exists:rooms,room_id',
-            'rooms.*.adults_count' => 'sometimes|integer|min:1',
-            'rooms.*.children_count' => 'sometimes|integer|min:0',
-            'rooms.*.rate' => 'sometimes|numeric|min:0',
-            'rooms.*.number_of_nights' => 'sometimes|integer|min:1',
-            'payment' => 'sometimes|array',
-            'payment.method' => 'required_with:payment|string',
-            'payment.amount' => 'required_with:payment|numeric|min:0',
-            'payment.status' => 'sometimes|string|in:pending,completed,failed,refunded',
-            'payment.transaction_id' => 'nullable|string',
+            'rooms' => 'required|array|min:1',
+            'rooms.*.room_id' => 'required|integer|exists:rooms,room_id',
+            'rooms.*.adults_count' => 'required|integer|min:1',
+            'rooms.*.children_count' => 'required|integer|min:0',
+            'rooms.*.rate' => 'required|numeric|min:0',
+            'rooms.*.number_of_nights' => 'required|integer|min:1',
+            'payment' => 'required|array',
+            'payment.method' => 'required|string',
+            'payment.amount' => 'required|numeric|min:1',
+            'payment.status' => 'required|string|in:pending,completed,failed,refunded',
+            'payment.transaction_id' => 'required|string',
             'payment.notes' => 'nullable|string',
+        ], [
+            'total_cost.min' => 'Booking total must be at least ₱1',
+            'payment.amount.min' => 'Payment amount must be at least ₱1',
+            'rooms.required' => 'At least one room must be selected',
+            'rooms.min' => 'At least one room must be selected',
         ]);
 
-        $booking = DB::transaction(function () use ($validated) {
-            $booking = Booking::create([
-                'booking_reference' => Booking::generateReference(),
-                'guest_id' => $validated['guest_id'],
-                'hotel_id' => $validated['hotel_id'],
-                'checkin_date' => $validated['checkin_date'],
-                'checkout_date' => $validated['checkout_date'],
-                'total_cost' => $validated['total_cost'],
-                'notes' => $validated['notes'] ?? null,
-                'booking_status' => 'pending',
-            ]);
+        try {
+            $booking = DB::transaction(function () use ($validated) {
+                // Handle guest creation or retrieval
+                $guestId = $validated['guest_id'] ?? null;
+                
+                // Always use guest_details if provided (highest priority)
+                if (isset($validated['guest_details']) && is_array($validated['guest_details'])) {
+                    $guestDetails = $validated['guest_details'];
+                    
+                    // Validate guest details have minimum required fields
+                    $firstName = trim($guestDetails['first_name'] ?? '');
+                    $lastName = trim($guestDetails['last_name'] ?? '');
+                    $email = trim($guestDetails['email'] ?? '');
+                    
+                    if (!$firstName || !$lastName || !$email) {
+                        throw new \Exception('Guest details must include valid first name, last name, and email');
+                    }
+                    
+                    // Try to find existing guest by email
+                    $existingGuest = Guest::where('email', $email)->first();
+                    
+                    if ($existingGuest) {
+                        $guestId = $existingGuest->id;
+                        // Update if phone or address provided
+                        if (!empty($guestDetails['phone']) || !empty($guestDetails['address'])) {
+                            $existingGuest->update([
+                                'phone' => $guestDetails['phone'] ?? $existingGuest->phone,
+                                'address' => $guestDetails['address'] ?? $existingGuest->address,
+                            ]);
+                        }
+                    } else {
+                        // Create new guest with a temporary password
+                        $newGuest = Guest::create([
+                            'first_name' => $firstName,
+                            'last_name' => $lastName,
+                            'email' => $email,
+                            'password' => bcrypt(Str::random(16)),
+                            'phone' => trim($guestDetails['phone'] ?? null) ?: null,
+                            'address' => trim($guestDetails['address'] ?? null) ?: null,
+                        ]);
+                        $guestId = $newGuest->id;
+                    }
+                } elseif (!$guestId) {
+                    throw new \Exception('Guest details or valid guest ID must be provided');
+                }
 
-            // Process rooms with batch operations
-            if (!empty($validated['rooms'])) {
+                $booking = Booking::create([
+                    'booking_reference' => Booking::generateReference(),
+                    'guest_id' => $guestId,
+                    'hotel_id' => $validated['hotel_id'],
+                    'checkin_date' => $validated['checkin_date'],
+                    'checkout_date' => $validated['checkout_date'],
+                    'total_cost' => $validated['total_cost'],
+                    'notes' => $validated['notes'] ?? null,
+                    'booking_status' => 'pending',
+                ]);
+
+                // Validate rooms and check for date conflicts
+                if (empty($validated['rooms'])) {
+                    throw new \Exception('At least one room must be selected');
+                }
+
+                // Process rooms with batch operations
                 $requestedRoomIds = array_filter(
                     array_column($validated['rooms'], 'room_id')
                 );
+
+                if (empty($requestedRoomIds)) {
+                    throw new \Exception('No valid rooms selected');
+                }
+
+                $checkinDate = $validated['checkin_date'];
+                $checkoutDate = $validated['checkout_date'];
+                
+                // Check for existing bookings on overlapping dates for the SPECIFIC rooms requested
+                $conflictingBookings = BookingRoom::whereIn('room_id', $requestedRoomIds)
+                    ->whereHas('booking', function ($query) use ($checkinDate, $checkoutDate) {
+                        $query->whereIn('booking_status', ['pending', 'confirmed', 'checked-in'])
+                            ->where(function ($q) use ($checkinDate, $checkoutDate) {
+                                $q->whereBetween('checkin_date', [$checkinDate, $checkoutDate])
+                                    ->orWhereBetween('checkout_date', [$checkinDate, $checkoutDate])
+                                    ->orWhere(function ($sq) use ($checkinDate, $checkoutDate) {
+                                        $sq->where('checkin_date', '<=', $checkinDate)
+                                            ->where('checkout_date', '>=', $checkoutDate);
+                                    });
+                            });
+                    })
+                    ->pluck('booking_id')
+                    ->toArray();
+
+                if (!empty($conflictingBookings)) {
+                    throw new \Exception('Selected dates have conflicting bookings for some rooms. Please choose different dates.');
+                }
 
                 // Single query: load all requested rooms with availability
                 $availableRooms = Room::whereIn('room_id', $requestedRoomIds)
@@ -118,7 +219,7 @@ class BookingController extends Controller
                     ->pluck('room_id')
                     ->toArray();
 
-                // Single query: load room types for fallback assignments
+                // Check for fallback availability BEFORE starting loop
                 $unavailableRoomIds = array_diff($requestedRoomIds, $availableRooms);
                 $fallbackRooms = [];
 
@@ -127,7 +228,7 @@ class BookingController extends Controller
                         ->pluck('room_type_id', 'room_id')
                         ->toArray();
 
-                    $fallbackRooms = Room::where('hotel_id', $validated['hotel_id'])
+                    $fallbackRoomsByTypeId = Room::where('hotel_id', $validated['hotel_id'])
                         ->whereIn('room_type_id', array_values($roomTypeMap))
                         ->where('status', 'available')
                         ->whereNotIn('room_id', $availableRooms)
@@ -146,7 +247,7 @@ class BookingController extends Controller
                         $requestedRoom = Room::find($targetRoomId);
                         $roomTypeId = $requestedRoom?->room_type_id ?? 1;
 
-                        $fallbackRoom = ($fallbackRooms[$roomTypeId] ?? collect())->shift();
+                        $fallbackRoom = ($fallbackRoomsByTypeId[$roomTypeId] ?? collect())->shift();
                         $targetRoomId = $fallbackRoom?->room_id;
                     }
 
@@ -175,53 +276,64 @@ class BookingController extends Controller
                     Room::whereIn('room_id', $roomIdsToReserve)
                         ->update(['status' => 'reserved']);
                 }
+
+                // Create payment (now required)
+                if (!empty($validated['payment'])) {
+                    $methodMap = [
+                        'Cash' => 'cash',
+                        'Credit/Debit Card' => 'credit_card',
+                        'Pay at Hotel (Card)' => 'credit_card',
+                        'GCash' => 'gcash',
+                        'PayPal' => 'paypal',
+                        'PayMaya' => 'paymaya',
+                        'Debit Card' => 'debit_card',
+                        'Credit Card' => 'credit_card',
+                        'Bank Transfer' => 'bank_transfer',
+                    ];
+
+                    $method = $validated['payment']['method'];
+                    $dbMethod = $methodMap[$method] ?? strtolower(str_replace(' ', '_', $method));
+                    
+                    // Validate payment amount is reasonable
+                    $paymentAmount = floatval($validated['payment']['amount']);
+                    if ($paymentAmount <= 0 || $paymentAmount > floatval($validated['total_cost']) * 2) {
+                        throw new \Exception('Payment amount must be between ₱1 and 2x the total booking cost');
+                    }
+
+                    Payment::create([
+                        'booking_id' => $booking->booking_id,
+                        'amount' => $paymentAmount,
+                        'payment_method' => $dbMethod,
+                        'status' => 'pending',
+                        'transaction_id' => $validated['payment']['transaction_id'] ?? null,
+                        'payment_date' => now(),
+                        'notes' => $validated['payment']['notes'] ?? null,
+                    ]);
+                }
+
+                return $booking;
+            });
+
+            $booking->load([
+                'guest:id,first_name,last_name,display_id',
+                'hotel:id,name',
+                'bookingRooms.room.roomType',
+                'payments',
+            ]);
+
+            // Notify admins and staff
+            $staffToNotify = User::whereIn('role', ['admin', 'staff'])->get();
+            if ($staffToNotify->isNotEmpty()) {
+                Notification::send($staffToNotify, new RoomBookedNotification($booking));
             }
 
-            // Create payment if provided
-            if (!empty($validated['payment'])) {
-                $methodMap = [
-                    'Cash' => 'cash',
-                    'Credit/Debit Card' => 'credit_card',
-                    'Pay at Hotel (Card)' => 'credit_card',
-                    'GCash' => 'gcash',
-                    'PayPal' => 'paypal',
-                    'PayMaya' => 'paymaya',
-                    'Debit Card' => 'debit_card',
-                    'Credit Card' => 'credit_card',
-                    'Bank Transfer' => 'bank_transfer',
-                ];
-
-                $method = $validated['payment']['method'];
-                $dbMethod = $methodMap[$method] ?? 'credit_card';
-
-                Payment::create([
-                    'booking_id' => $booking->booking_id,
-                    'amount' => $validated['payment']['amount'],
-                    'payment_method' => $dbMethod,
-                    'status' => $validated['payment']['status'] ?? 'pending',
-                    'transaction_id' => $validated['payment']['transaction_id'] ?? null,
-                    'payment_date' => now(),
-                    'notes' => $validated['payment']['notes'] ?? null,
-                ]);
-            }
-
-            return $booking;
-        });
-
-        $booking->load([
-            'guest:id,first_name,last_name,display_id',
-            'hotel:id,name',
-            'bookingRooms.room.roomType',
-            'payments',
-        ]);
-
-        // Notify admins and staff
-        $staffToNotify = User::whereIn('role', ['admin', 'staff'])->get();
-        if ($staffToNotify->isNotEmpty()) {
-            Notification::send($staffToNotify, new RoomBookedNotification($booking));
+            return response()->json(['success' => true, 'data' => $booking], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage() ?: 'Failed to create booking'
+            ], 422);
         }
-
-        return response()->json(['success' => true, 'data' => $booking], 201);
     }
 
     /**
@@ -259,7 +371,7 @@ class BookingController extends Controller
     public function updateStatus(Request $request, Booking $booking): JsonResponse
     {
         $validated = $request->validate([
-            'booking_status' => 'required|in:pending,confirmed,checked-in,checked-out,cancelled',
+            'booking_status' => 'required|in:pending,reviewed,confirmed,checked-in,checked-out,cancelled',
         ]);
 
         $newStatus = $validated['booking_status'];
@@ -277,7 +389,7 @@ class BookingController extends Controller
             $roomStatus = match ($newStatus) {
                 'checked-in', 'confirmed' => 'occupied',
                 'checked-out', 'cancelled' => 'available',
-                'pending' => 'reserved',
+                'pending', 'reviewed' => 'reserved',
                 default => null,
             };
 

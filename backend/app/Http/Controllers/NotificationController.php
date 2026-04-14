@@ -19,8 +19,15 @@ class NotificationController extends Controller
              $user = Auth::guard('guest')->user();
         }
 
+        // If no user is authenticated, return empty notifications
         if (!$user) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized'], 401);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'notifications' => [],
+                    'unread_count' => 0
+                ]
+            ]);
         }
 
         $notifications = $user->notifications()->latest()->limit(50)->get();
@@ -43,7 +50,7 @@ class NotificationController extends Controller
         $user = Auth::user() ?: Auth::guard('guest')->user();
 
         if (!$user) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized'], 401);
+            return response()->json(['success' => true]); // Silent fail for unauthenticated users
         }
 
         $notification = $user->notifications()->where('id', $id)->first();
@@ -63,7 +70,7 @@ class NotificationController extends Controller
         $user = Auth::user() ?: Auth::guard('guest')->user();
 
         if (!$user) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized'], 401);
+            return response()->json(['success' => true]); // Silent fail for unauthenticated users
         }
 
         $user->unreadNotifications->markAsRead();
@@ -79,7 +86,7 @@ class NotificationController extends Controller
         $user = Auth::user() ?: Auth::guard('guest')->user();
 
         if (!$user) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized'], 401);
+            return response()->json(['success' => true]); // Silent fail for unauthenticated users
         }
 
         $notification = $user->notifications()->where('id', $id)->first();
