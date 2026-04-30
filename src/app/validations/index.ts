@@ -39,7 +39,7 @@ export const RoomCreateSchema = z.object({
   room_type_id: z.number().int().positive(),
   room_number: z.string().min(1, 'Room number is required'),
   floor: z.string().min(1, 'Floor is required'),
-  status: z.enum(['available', 'occupied', 'maintenance', 'reserved']).default('available'),
+  status: z.enum(['available', 'occupied', 'maintenance', 'reserved', 'cleaning']).default('available'),
   notes: z.string().optional(),
 });
 
@@ -96,7 +96,7 @@ export const BookingCreateSchema = z.object({
 });
 
 export const BookingUpdateSchema = z.object({
-  booking_status: z.enum(['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled']).optional(),
+  booking_status: z.enum(['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled']).optional(),
   notes: z.string().optional(),
 });
 

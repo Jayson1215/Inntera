@@ -3,8 +3,8 @@ html {
 }
 
 :root {
-  --inntera-primary: #D97706;
-  --inntera-primary-light: rgba(217, 119, 6, 0.08);
+  --inntera-primary: #10b981;
+  --inntera-primary-light: rgba(16, 185, 129, 0.08);
   --inntera-bg: #FAFAF8;
   --inntera-card: #ffffff;
   --inntera-border: rgba(0, 0, 0, 0.06);
@@ -18,9 +18,15 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Hero YouTube Video Cover */
-.homepage-container iframe {
-  pointer-events: none;
+/* Hero Background Image */
+.homepage-container section#home img {
+  transition: transform 12s ease-out;
+  animation: heroZoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes heroZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
 }
 
 /* Animations */
@@ -61,6 +67,31 @@ html {
 .delay-1 { animation-delay: 0.2s; }
 .delay-2 { animation-delay: 0.4s; }
 .delay-3 { animation-delay: 0.6s; }
+
+.shimmer-text {
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #34d399 25%,
+    #10b981 50%,
+    #34d399 75%,
+    #ffffff 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+.paradise-gradient {
+  background: linear-gradient(to right, #34d399, #ffffff, #34d399);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
 
 /* Scrollbar Styling */
 .homepage-container::-webkit-scrollbar {

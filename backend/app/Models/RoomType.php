@@ -20,6 +20,7 @@ class RoomType extends Model
         'max_occupancy',
         'status',
         'bed_type',
+        'image_url',
     ];
 
     protected $casts = [

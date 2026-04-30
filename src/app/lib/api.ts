@@ -13,6 +13,7 @@ import {
   Charge,
   Staff,
   Notification,
+  AnalyticsData,
 } from '../types';
 import {
   HotelCreateSchema,
@@ -243,6 +244,13 @@ export const bookingService = {
     return this.updateStatus(booking_id, 'checked-out');
   },
   
+  async createWalkIn(data: Record<string, unknown>): Promise<ApiResponse<Booking>> {
+    return apiFetch<Booking>('/bookings/walk-in', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
   async delete(id: number): Promise<ApiResponse<void>> {
     return apiFetch<void>(`/bookings/${id}`, {
       method: 'DELETE',
@@ -443,6 +451,10 @@ export const dashboardService = {
   async getStats(): Promise<ApiResponse<DashboardStats>> {
     return apiFetch<DashboardStats>('/dashboard/stats');
   },
+
+  async getAnalytics(): Promise<ApiResponse<AnalyticsData>> {
+    return apiFetch<AnalyticsData>('/dashboard/analytics');
+  },
 };
 
 // System Init
@@ -478,6 +490,10 @@ export const notificationService = {
 
   async delete(id: string): Promise<ApiResponse<void>> {
     return apiFetch(`/notifications/${id}`, { method: 'DELETE' });
+  },
+
+  async deleteAll(): Promise<ApiResponse<void>> {
+    return apiFetch('/notifications/clear-all', { method: 'DELETE' });
   },
 };
 // Admin Management

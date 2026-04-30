@@ -100,6 +100,7 @@ export interface Booking {
   booking_id: number;
   hotel_id: number;
   guest_id: number;
+  guest_name?: string;
   booking_reference: string;
   checkin_date: string;
   checkout_date: string;
@@ -189,4 +190,24 @@ export interface Notification {
 }
 
 
+// Analytics
+export interface DailyRevenue {
+  date: string;
+  revenue: number;
+}
 
+export interface MonthlyRevenue {
+  year: number;
+  month: number;
+  revenue: number;
+}
+
+export interface AnalyticsData {
+  daily_revenue: DailyRevenue[];
+  monthly_revenue: MonthlyRevenue[];
+  summary: {
+    total_revenue: number;
+    avg_booking_value: number;
+    total_bookings: number;
+  };
+}

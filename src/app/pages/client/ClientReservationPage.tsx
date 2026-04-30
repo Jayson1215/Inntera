@@ -16,7 +16,9 @@ import {
   Calendar as CalendarIcon,
   CreditCard,
   Wallet,
-  Lock
+  Lock,
+  Banknote,
+  Smartphone
 } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
@@ -46,6 +48,8 @@ export function ClientReservationPage() {
   const [discountType, setDiscountType] = useState<'None' | 'Senior' | 'PWD'>('None');
   const [idNumber, setIdNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [bookingDataResult, setBookingDataResult] = useState<any>(null);
 
   const hotel = hotels.find(h => h.id === parseInt(hotelId || '0'));
   const roomType = roomTypes.find(rt => rt.room_type_id === parseInt(roomTypeId || '0'));
@@ -92,6 +96,11 @@ export function ClientReservationPage() {
 
     if (missingFields.length > 0) {
       toast.error(`Please fill in: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    if (!/^09\d{9}$/.test(guestPhone.replace(/\s/g, ''))) {
+      toast.error('Please enter a valid phone number (e.g., 09123456789)');
       return;
     }
 
@@ -176,9 +185,11 @@ export function ClientReservationPage() {
 
     const result = await createBooking(bookingData);
 
-    if (result.success) {
-      toast.success('Your reservation has been submitted! Status: Pending Admin Review');
-      setTimeout(() => navigate('/client/bookings'), 2000);
+    if (result.success && result.data) {
+      toast.success('Your reservation has been submitted!');
+      setBookingDataResult(result.data);
+      setIsSuccess(true);
+      // We no longer auto-redirect. The user will see their Ticket and click to proceed.
     } else {
       const errorMsg = result.error || 'Failed to complete reservation';
       console.error('Booking error:', errorMsg);
@@ -190,9 +201,9 @@ export function ClientReservationPage() {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#FAFAF8]">
-        <Loader2 className="w-10 h-10 animate-spin text-amber-600 mb-4" />
-        <p className="text-stone-600 font-medium animate-pulse tracking-wide">Securing your reservation...</p>
+      <div className="h-screen flex flex-col items-center justify-center bg-stone-100">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-600 mb-4" />
+        <p className="text-stone-900 font-black animate-pulse tracking-wide uppercase text-[10px]">Securing your reservation...</p>
       </div>
     );
   }
@@ -204,13 +215,94 @@ export function ClientReservationPage() {
   const finalTotal = baseTotal * (discountType !== 'None' ? 0.8 : 1);
   const downpayment = finalTotal * 0.3;
 
+  if (isSuccess && bookingDataResult) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center -mt-8 -mx-4 md:-mx-8 lg:-mx-12 px-4 py-8 relative overflow-hidden font-sans">
+        {/* Abstract Background Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100/50 rounded-full blur-3xl -mr-48 -mt-48 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-stone-200/40 rounded-full blur-3xl -ml-40 -mb-40 pointer-events-none" />
+
+        <div className="w-full max-w-md bg-white rounded-[1.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-stone-100 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-500">
+           {/* Compact Header */}
+           <div className="bg-emerald-600 p-6 text-center relative">
+             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                <CheckCircle2 className="w-6 h-6 text-white" />
+             </div>
+             <h1 className="text-2xl font-black text-white tracking-tight">Booking Confirmed</h1>
+             <p className="text-emerald-50/80 text-[11px] font-medium mt-1 uppercase tracking-widest">Confirmation ID: {bookingDataResult.booking_reference}</p>
+           </div>
+
+           {/* Minimal Ticket Content */}
+           <div className="p-6 space-y-6">
+              {/* Hotel/Room Summary */}
+              <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-stone-200">
+                    <img 
+                      src={hotel.image_url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=200'} 
+                      className="w-full h-full object-cover"
+                      alt={hotel.name}
+                    />
+                 </div>
+                 <div>
+                    <h3 className="text-sm font-bold text-stone-900 leading-none">{hotel.name}</h3>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mt-1">{roomType.name}</p>
+                 </div>
+              </div>
+
+              {/* Stay Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest">Check-in</p>
+                    <p className="text-sm font-black text-stone-950">{checkIn ? format(checkIn, 'MMM dd, yyyy') : '--'}</p>
+                 </div>
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest">Check-out</p>
+                    <p className="text-sm font-black text-stone-950">{checkOut ? format(checkOut, 'MMM dd, yyyy') : '--'}</p>
+                 </div>
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest">Guests</p>
+                    <p className="text-sm font-black text-stone-950">{adults} Adults, {children} Children</p>
+                 </div>
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest">Total Settled</p>
+                    <p className="text-sm font-black text-emerald-600">₱{downpayment.toLocaleString()}</p>
+                 </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 space-y-2">
+                 <Button 
+                   onClick={() => navigate('/client/bookings', { state: { highlightedBookingId: bookingDataResult.booking_id } })}
+                   className="w-full h-12 bg-stone-900 hover:bg-black text-white font-bold uppercase tracking-widest rounded-xl text-[10px] shadow-lg active:scale-95 transition-all"
+                 >
+                   Manage Reservation
+                 </Button>
+                 <Button 
+                   variant="ghost"
+                   onClick={() => navigate('/client/search')}
+                   className="w-full h-12 text-stone-900 hover:text-black font-black uppercase tracking-widest rounded-xl text-[10px]"
+                 >
+                   Return to Search
+                 </Button>
+              </div>
+
+              <div className="pt-4 border-t border-stone-100 flex items-center justify-center gap-2">
+                 <ShieldCheck size={12} className="text-stone-900" />
+                 <p className="text-[9px] text-stone-900 font-black uppercase tracking-widest">Secure Digital Ticket</p>
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pb-20 font-sans -mt-8 -mx-4 md:-mx-8 lg:-mx-12 px-4 md:px-8 lg:px-12 py-10">
+    <div className="min-h-screen bg-stone-100 pb-20 font-sans -mt-8 -mx-4 md:-mx-8 lg:-mx-12 px-4 md:px-8 lg:px-12 py-10">
       {/* Header Bar */}
       <div className="bg-white border border-stone-100 sticky top-0 z-40 backdrop-blur-md rounded-2xl shadow-sm mb-10">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
-           <Link to={`/client/hotel/${hotelId}`} className="flex items-center gap-2 text-sm font-medium text-stone-600 hover:text-amber-600 transition-all group">
-              <div className="p-2 bg-stone-50 rounded-full group-hover:bg-amber-50 transition-colors border border-stone-100 group-hover:border-amber-200">
+           <Link to={`/client/hotel/${hotelId}`} className="flex items-center gap-2 text-sm font-black text-stone-950 hover:text-emerald-600 transition-all group">
+              <div className="p-2 bg-stone-50 rounded-full group-hover:bg-emerald-50 transition-colors border border-stone-100 group-hover:border-emerald-200">
                  <ArrowLeft size={16} />
               </div>
               <span>Back to Selection</span>
@@ -218,13 +310,13 @@ export function ClientReservationPage() {
            
            <div className="hidden md:flex items-center gap-8">
               <div className="flex items-center gap-3">
-                 <div className="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-bold shadow-lg shadow-amber-500/15">1</div>
-                 <span className="text-sm font-bold text-stone-700">Reservation Details</span>
+                 <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-lg shadow-emerald-500/15">1</div>
+                 <span className="text-sm font-black text-stone-950">Reservation Details</span>
               </div>
               <div className="w-10 h-px bg-stone-200"></div>
               <div className="flex items-center gap-3 opacity-40">
                  <div className="w-7 h-7 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center text-xs font-bold">2</div>
-                 <span className="text-sm font-bold text-stone-600">Confirmation</span>
+                 <span className="text-sm font-black text-stone-900">Confirmation</span>
               </div>
            </div>
 
@@ -243,64 +335,96 @@ export function ClientReservationPage() {
             
             {/* Guest Details */}
             <section className="bg-white rounded-3xl shadow-sm border border-stone-100 p-8 overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-stone-900">Guest Information</h2>
-                  <p className="text-stone-600 text-sm mt-2">Primary person checking in.</p>
+                  <h2 className="text-2xl font-black tracking-tight text-stone-950">Guest Information</h2>
+                  <p className="text-stone-900 text-sm mt-2 font-bold">Primary person checking in.</p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
-                  <Users className="text-amber-600 w-6 h-6" />
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <Users className="text-emerald-600 w-6 h-6" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-stone-600 uppercase tracking-wider ml-1">First Name</Label>
-                  <Input 
-                    value={guestFirstName}
-                    onChange={(e) => setGuestFirstName(e.target.value)}
-                    placeholder="John"
-                    className="h-12 border-stone-200 focus:ring-amber-500 focus:border-amber-200 rounded-xl font-medium bg-stone-50"
-                  />
+                  <Label className="text-[10px] font-black text-stone-900 uppercase tracking-[0.2em] ml-1">Legal First Name</Label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-900 group-focus-within:text-emerald-600 transition-colors">
+                      <Users size={16} />
+                    </div>
+                    <Input 
+                      value={guestFirstName}
+                      onChange={(e) => setGuestFirstName(e.target.value)}
+                      placeholder="e.g. Alexander"
+                      className="h-14 pl-12 border-stone-200 bg-stone-50/50 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 rounded-2xl font-bold text-stone-900 transition-all placeholder:text-stone-300 placeholder:font-medium"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-stone-600 uppercase tracking-wider ml-1">Last Name</Label>
-                  <Input 
-                    value={guestLastName}
-                    onChange={(e) => setGuestLastName(e.target.value)}
-                    placeholder="Doe"
-                    className="h-12 border-stone-200 focus:ring-amber-500 focus:border-amber-200 rounded-xl font-medium bg-stone-50"
-                  />
+                  <Label className="text-[10px] font-black text-stone-900 uppercase tracking-[0.2em] ml-1">Legal Last Name</Label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-900 group-focus-within:text-emerald-600 transition-colors">
+                      <Users size={16} />
+                    </div>
+                    <Input 
+                      value={guestLastName}
+                      onChange={(e) => setGuestLastName(e.target.value)}
+                      placeholder="e.g. Hamilton"
+                      className="h-14 pl-12 border-stone-200 bg-stone-50/50 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 rounded-2xl font-bold text-stone-900 transition-all placeholder:text-stone-300 placeholder:font-medium"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-stone-600 uppercase tracking-wider ml-1">Email Address</Label>
-                  <Input 
-                    type="email"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    placeholder="john@example.com"
-                    className="h-12 border-stone-200 focus:ring-amber-500 focus:border-amber-200 rounded-xl font-medium bg-stone-50"
-                  />
+                  <Label className="text-[10px] font-black text-stone-900 uppercase tracking-[0.2em] ml-1">Digital Correspondence</Label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-900 group-focus-within:text-emerald-600 transition-colors">
+                      <CreditCard size={16} />
+                    </div>
+                    <Input 
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      placeholder="alexander@luxury.com"
+                      className="h-14 pl-12 border-stone-200 bg-stone-50/50 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 rounded-2xl font-bold text-stone-900 transition-all placeholder:text-stone-300 placeholder:font-medium"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-stone-600 uppercase tracking-wider ml-1">Phone Number</Label>
-                  <Input 
-                    type="tel"
-                    value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    placeholder="0917 123 4567"
-                    className="h-12 border-stone-200 focus:ring-amber-500 focus:border-amber-200 rounded-xl font-medium bg-stone-50"
-                  />
+                  <Label className="text-[10px] font-black text-stone-900 uppercase tracking-[0.2em] ml-1">Secure Contact Number</Label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-900 group-focus-within:text-emerald-600 transition-colors">
+                      <div className="text-[10px] font-black">PH</div>
+                    </div>
+                    <Input 
+                      type="tel"
+                      value={guestPhone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 11) setGuestPhone(val);
+                      }}
+                      placeholder="09123456789"
+                      className="h-14 pl-12 border-stone-200 bg-stone-50/50 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 rounded-2xl font-bold text-stone-900 transition-all placeholder:text-stone-300 placeholder:font-medium"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-xs font-bold text-stone-600 uppercase tracking-wider ml-1">Full Address</Label>
-                  <Input 
-                    value={guestAddress}
-                    onChange={(e) => setGuestAddress(e.target.value)}
-                    placeholder="123 Mabini St., Manila"
-                    className="h-12 border-stone-200 focus:ring-amber-500 focus:border-amber-200 rounded-xl font-medium bg-stone-50"
-                  />
+                  <Label className="text-[10px] font-black text-stone-900 uppercase tracking-[0.2em] ml-1">Billing & Residence Address</Label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-900 group-focus-within:text-emerald-600 transition-colors">
+                      <MapPin size={16} />
+                    </div>
+                    <Input 
+                      value={guestAddress}
+                      onChange={(e) => setGuestAddress(e.target.value)}
+                      placeholder="Enter your full residential or billing address"
+                      className="h-14 pl-12 border-stone-200 bg-stone-50/50 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 rounded-2xl font-bold text-stone-900 transition-all placeholder:text-stone-300 placeholder:font-medium"
+                    />
+                  </div>
                 </div>
               </div>
             </section>
@@ -310,8 +434,8 @@ export function ClientReservationPage() {
               <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-stone-900">Special Discounts</h2>
-                  <p className="text-stone-600 text-sm mt-2">For Senior Citizens and PWD.</p>
+                  <h2 className="text-2xl font-black tracking-tight text-stone-950">Special Discounts</h2>
+                  <p className="text-stone-900 text-sm mt-2 font-bold">For Senior Citizens and PWD.</p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
                   <Star className="text-emerald-500 w-6 h-6" />
@@ -336,10 +460,10 @@ export function ClientReservationPage() {
                       )}
                     >
                       <span className={cn(
-                        "text-xs font-bold leading-none",
+                        "text-xs font-black leading-none",
                         discountType === type.id ? 'text-emerald-700' : 'text-stone-700'
                       )}>{type.label}</span>
-                      <span className="text-[10px] text-stone-600 font-medium uppercase tracking-widest">{type.sub}</span>
+                      <span className="text-[10px] text-stone-900 font-bold uppercase tracking-widest">{type.sub}</span>
                       {discountType === type.id && (
                         <div className="absolute -right-1 -bottom-1">
                           <CheckCircle2 size={32} className="text-emerald-400/20" />
@@ -351,7 +475,7 @@ export function ClientReservationPage() {
 
                 {discountType !== 'None' && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                    <Label className="text-xs font-bold text-stone-600 uppercase tracking-wider ml-1">ID Card Number</Label>
+                    <Label className="text-xs font-black text-stone-900 uppercase tracking-wider ml-1">ID Card Number</Label>
                     <Input 
                       value={idNumber}
                       onChange={(e) => setIdNumber(e.target.value)}
@@ -365,21 +489,22 @@ export function ClientReservationPage() {
 
             {/* Payment */}
             <section className="bg-white rounded-3xl shadow-sm border border-stone-100 p-8 overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-stone-900">Payment Method</h2>
-                  <p className="text-stone-600 text-sm mt-2">Select your preferred settlement.</p>
+                  <h2 className="text-2xl font-black tracking-tight text-stone-950">Payment Method</h2>
+                  <p className="text-stone-900 text-sm mt-2 font-bold">Select your preferred settlement.</p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
-                  <CreditCard className="text-amber-600 w-6 h-6" />
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <CreditCard className="text-emerald-600 w-6 h-6" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { id: 'Cash', label: 'Cash Payment', icon: <Wallet size={20} />, sub: 'Pay at the hotel' },
-                  { id: 'Credit/Debit Card', label: 'Credit/Debit Card', icon: <CreditCard size={20} />, sub: 'Online payment' },
+                  { id: 'Cash', label: 'Cash Payment', icon: <Banknote size={20} />, sub: 'Pay at the front desk' },
+                  { id: 'GCash', label: 'GCash', icon: <Wallet size={20} />, sub: 'Local / Manual Transfer' },
+                  { id: 'Maya', label: 'Maya', icon: <Smartphone size={20} />, sub: 'Local / Manual Transfer' },
                 ].map(method => (
                   <button 
                     key={method.id}
@@ -387,23 +512,23 @@ export function ClientReservationPage() {
                     className={cn(
                       "flex flex-col items-start gap-4 p-5 rounded-2xl border transition-all relative group",
                       paymentMethod === method.id 
-                        ? 'border-amber-400 ring-1 ring-amber-400 bg-amber-50 shadow-md shadow-amber-500/5' 
+                        ? 'border-emerald-400 ring-1 ring-emerald-400 bg-emerald-50 shadow-md shadow-emerald-500/5' 
                         : 'border-stone-100 bg-stone-50 hover:border-stone-200'
                     )}
                   >
                     <div className={cn(
                       "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
-                      paymentMethod === method.id ? 'bg-amber-600 text-white scale-105 shadow-xl shadow-amber-500/15' : 'bg-white text-stone-600 border border-stone-100'
+                      paymentMethod === method.id ? 'bg-emerald-600 text-white scale-105 shadow-xl shadow-emerald-500/15' : 'bg-white text-stone-600 border border-stone-100'
                     )}>
                       {method.icon}
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-stone-700 leading-none">{method.label}</p>
-                      <p className="text-xs text-stone-600 font-medium mt-1.5 leading-none">{method.sub}</p>
+                      <p className="text-sm font-black text-stone-950 leading-none">{method.label}</p>
+                      <p className="text-xs text-stone-900 font-bold mt-1.5 leading-none">{method.sub}</p>
                     </div>
                     {paymentMethod === method.id && (
                        <div className="absolute top-5 right-5">
-                          <CheckCircle2 size={18} className="text-amber-600" />
+                          <CheckCircle2 size={18} className="text-emerald-600" />
                        </div>
                     )}
                   </button>
@@ -413,9 +538,9 @@ export function ClientReservationPage() {
 
             {/* Cancellation Info */}
             <div className="flex flex-col md:flex-row items-center gap-8 pt-4">
-               <div className="flex items-start gap-4 p-6 bg-amber-50 border border-amber-100 rounded-2xl md:flex-1">
-                  <Lock className="text-amber-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+               <div className="flex items-start gap-4 p-6 bg-emerald-50 border border-emerald-100 rounded-2xl md:flex-1">
+                  <Lock className="text-emerald-600 w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-emerald-800 font-medium leading-relaxed">
                     Refundable Cancellation: You can cancel and receive a full refund of your downpayment before the check-in date.
                   </p>
                </div>
@@ -439,7 +564,7 @@ export function ClientReservationPage() {
                       {[...Array(5)].map((_, i) => <Star key={i} size={10} className="fill-yellow-400 text-yellow-400" />)}
                     </div>
                     <h3 className="text-xl font-bold text-white tracking-tight leading-tight">{hotel.name}</h3>
-                    <p className="text-[10px] font-medium text-white/60 flex items-center gap-1 mt-1">
+                    <p className="text-[10px] font-black text-white/90 flex items-center gap-1 mt-1">
                       <MapPin size={10} /> {hotel.city}
                     </p>
                   </div>
@@ -459,11 +584,11 @@ export function ClientReservationPage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     <div className="absolute bottom-3 left-3 flex flex-col">
-                      <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">{roomType.bed_type}</span>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">{roomType.bed_type}</span>
                       <span className="text-sm font-bold text-white tracking-tight leading-none mt-1">{roomType.name}</span>
                     </div>
                     <div className="absolute top-3 right-3">
-                       <Badge className="bg-amber-600/90 backdrop-blur-md text-white border-0 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">Premium Suite</Badge>
+                       <Badge className="bg-emerald-600/90 backdrop-blur-md text-white border-0 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">Premium Suite</Badge>
                     </div>
                   </div>
 
@@ -472,23 +597,22 @@ export function ClientReservationPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <div className="bg-white p-4 cursor-pointer hover:bg-stone-50 transition-colors">
-                          <p className="text-[10px] font-bold text-stone-600 uppercase tracking-widest mb-2 leading-none">Check-in</p>
+                          <p className="text-[10px] font-black text-stone-900 uppercase tracking-widest mb-2 leading-none">Check-in</p>
                           <div className="flex items-center gap-2">
-                             <CalendarIcon size={14} className="text-amber-500" />
-                             <p className="text-sm font-bold text-stone-700 leading-none">
+                             <CalendarIcon size={14} className="text-emerald-500" />
+                             <p className="text-sm font-black text-stone-950 leading-none">
                                 {checkIn ? format(checkIn, 'MMM dd') : 'Select'}
                              </p>
                           </div>
                         </div>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-white shadow-2xl rounded-2xl border-stone-200 z-[100]" align="start">
+                      <PopoverContent className="w-auto p-0 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-2xl border border-stone-200 z-[100] animate-in fade-in zoom-in-95 duration-200" align="start">
                         <Calendar
                           mode="single"
                           selected={checkIn}
                           onSelect={handleCheckInChange}
                           initialFocus
                           disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                          className="p-4"
                         />
                       </PopoverContent>
                     </Popover>
@@ -496,23 +620,22 @@ export function ClientReservationPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <div className="bg-white p-4 cursor-pointer hover:bg-stone-50 transition-colors">
-                          <p className="text-[10px] font-bold text-stone-600 uppercase tracking-widest mb-2 leading-none">Check-out</p>
+                          <p className="text-[10px] font-black text-stone-900 uppercase tracking-widest mb-2 leading-none">Check-out</p>
                           <div className="flex items-center gap-2">
                              <CalendarIcon size={14} className="text-stone-400" />
-                             <p className="text-sm font-bold text-stone-700 leading-none">
+                             <p className="text-sm font-black text-stone-950 leading-none">
                                 {checkOut ? format(checkOut, 'MMM dd') : 'Select'}
                              </p>
                           </div>
                         </div>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-white shadow-2xl rounded-2xl border-stone-200 z-[100]" align="end">
+                      <PopoverContent className="w-auto p-0 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-2xl border border-stone-200 z-[100] animate-in fade-in zoom-in-95 duration-200" align="end">
                         <Calendar
                           mode="single"
                           selected={checkOut}
                           onSelect={setCheckOut}
                           initialFocus
                           disabled={(date) => checkIn ? date <= checkIn : date < new Date()}
-                          className="p-4"
                         />
                       </PopoverContent>
                     </Popover>
@@ -521,19 +644,19 @@ export function ClientReservationPage() {
                   {/* Room Info */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-2xl border border-stone-100">
-                      <div className="w-10 h-10 rounded-xl bg-white border border-stone-100 flex items-center justify-center text-stone-600 font-bold text-xs">
+                      <div className="w-10 h-10 rounded-xl bg-white border border-stone-100 flex items-center justify-center text-stone-900 font-black text-xs">
                         {roomType.room_type_id}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-stone-700 leading-tight">{roomType.name}</p>
-                        <p className="text-[10px] font-medium text-stone-600 mt-1 leading-none">{adults} Adults, {children} Children</p>
+                        <p className="text-xs font-black text-stone-950 leading-tight">{roomType.name}</p>
+                        <p className="text-[10px] font-black text-stone-900 mt-1 leading-none">{adults} Adults, {children} Children</p>
                       </div>
                     </div>
 
                     <div className="space-y-3 pt-4">
                       <div className="flex justify-between text-sm">
-                        <span className="text-stone-600 font-medium">Subtotal ({numNights} night{numNights > 1 ? 's' : ''})</span>
-                        <span className="font-bold text-stone-700 font-mono">₱{baseTotal.toLocaleString()}</span>
+                        <span className="text-stone-900 font-black">Subtotal ({numNights} night{numNights > 1 ? 's' : ''})</span>
+                        <span className="font-black text-stone-950 font-mono">₱{baseTotal.toLocaleString()}</span>
                       </div>
                       {discountType !== 'None' && (
                         <div className="flex justify-between text-sm text-emerald-600 font-bold">
@@ -542,7 +665,7 @@ export function ClientReservationPage() {
                         </div>
                       )}
                       <div className="flex justify-between text-base pt-3 border-t border-dashed border-stone-100">
-                        <span className="font-bold text-stone-700">Total</span>
+                        <span className="font-black text-stone-950">Total</span>
                         <span className="font-black text-stone-900">₱{finalTotal.toLocaleString()}</span>
                       </div>
                     </div>
@@ -550,16 +673,16 @@ export function ClientReservationPage() {
 
                   {/* Downpayment */}
                   <div className="pt-6 border-t border-stone-100 space-y-4">
-                    <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-none">Downpayment (30%)</span>
-                        <span className="bg-amber-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">Required</span>
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest leading-none">Downpayment (30%)</span>
+                        <span className="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">Required</span>
                       </div>
-                      <div className="flex items-baseline gap-1 text-amber-700 font-black">
+                      <div className="flex items-baseline gap-1 text-emerald-700 font-black">
                         <span className="text-lg">₱</span>
                         <span className="text-3xl tracking-tighter">{downpayment.toLocaleString()}</span>
                       </div>
-                      <p className="text-[9px] font-medium text-stone-600 uppercase mt-2 tracking-widest">Balance ₱{(finalTotal - downpayment).toLocaleString()} at {paymentMethod === 'Cash' ? 'hotel' : 'checkout'}</p>
+                      <p className="text-[9px] font-black text-stone-900 uppercase mt-2 tracking-widest">Balance ₱{(finalTotal - downpayment).toLocaleString()} at {paymentMethod === 'Cash' ? 'hotel' : 'checkout'}</p>
                     </div>
                   </div>
 
@@ -570,7 +693,7 @@ export function ClientReservationPage() {
                       disabled={isSubmitting}
                       className={cn(
                         "w-full h-14 rounded-2xl font-bold uppercase tracking-wide text-xs transition-all shadow-lg active:scale-95 group",
-                        isSubmitting ? "bg-stone-100 text-stone-600" : "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/15"
+                        isSubmitting ? "bg-stone-100 text-stone-600" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/15"
                       )}
                     >
                       {isSubmitting ? (
@@ -587,7 +710,7 @@ export function ClientReservationPage() {
                     </Button>
                     <div className="flex justify-center gap-2 mt-5">
                        <ShieldCheck size={12} className="text-emerald-500" />
-                       <p className="text-[10px] text-stone-600 font-medium">
+                       <p className="text-[10px] text-stone-900 font-black">
                          Secure 256-bit encryption
                        </p>
                     </div>
@@ -598,10 +721,10 @@ export function ClientReservationPage() {
               {/* Help */}
               <div className="bg-stone-800 rounded-3xl p-6 text-white overflow-hidden relative group cursor-pointer active:scale-[0.98] transition-all">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 group-hover:scale-125 transition-transform" />
-                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-3 leading-none">Support</p>
+                <p className="text-[10px] font-black text-stone-900 uppercase tracking-widest mb-3 leading-none">Support</p>
                 <h4 className="text-sm font-bold mb-1">Questions about this stay?</h4>
-                <p className="text-xs text-stone-600 mb-4 leading-relaxed">Our team is available 24/7 to assist you.</p>
-                <div className="inline-flex items-center gap-2 text-xs font-bold py-2 border-b-2 border-amber-500/40 hover:border-amber-500 transition-all text-amber-400">
+                <p className="text-xs text-stone-900 mb-4 leading-relaxed font-black">Our team is available 24/7 to assist you.</p>
+                <div className="inline-flex items-center gap-2 text-xs font-bold py-2 border-b-2 border-emerald-500/40 hover:border-emerald-500 transition-all text-emerald-400">
                   <span>Chat with an advisor</span>
                   <ChevronRight size={12} />
                 </div>

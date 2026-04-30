@@ -17,6 +17,7 @@ const buttonVariants = cva(
           "bg-emerald-100 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-900 dark:text-emerald-100 dark:hover:bg-emerald-800",
         ghost: "hover:bg-emerald-100 hover:text-emerald-900 dark:hover:bg-emerald-900 dark:hover:text-emerald-100",
         link: "text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400",
+        light: "bg-stone-50 text-stone-900 border border-stone-200 hover:bg-stone-100 dark:bg-stone-50 dark:text-stone-900 dark:hover:bg-stone-100",
       },
       size: {
         default: "h-10 px-4 py-2",

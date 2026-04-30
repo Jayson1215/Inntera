@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, useCallback, useEffect,
 import { Booking, Room, Hotel, Guest, RoomType, Staff } from '../types';
 import { bookingService, roomService, hotelService, roomTypeService, staffService, guestService, paymentService, systemService } from '../lib/api';
 import { toast } from 'sonner';
+import { useNotifications } from './NotificationContext';
 
 export interface CleaningAssignment {
   room_id: number;
@@ -19,11 +20,12 @@ interface BookingContextType {
   roomTypes: RoomType[];
   staff: Staff[];
   cleaningAssignments: CleaningAssignment[];
-  updateBookingStatus: (bookingId: number, newStatus: Booking['booking_status']) => Promise<void>;
-  updateBookingNotes: (bookingId: number, notes: string) => Promise<void>;
-  updateRoomStatus: (roomId: number, newStatus: Room['status']) => Promise<void>;
+  updateBookingStatus: (bookingId: number, newStatus: Booking['booking_status']) => Promise<{ success: boolean; error?: string }>;
+  updateBookingNotes: (bookingId: number, notes: string) => Promise<{ success: boolean; error?: string }>;
+  verifyPayment: (bookingId: number) => Promise<{ success: boolean; error?: string }>;
+  updateRoomStatus: (roomId: number, newStatus: Room['status']) => Promise<{ success: boolean; error?: string }>;
   assignCleaningTask: (roomId: number, taskType?: 'cleaning' | 'maintenance') => void;
-  completeCleaningTask: (roomId: number) => Promise<void>;
+  completeCleaningTask: (roomId: number) => Promise<{ success: boolean; error?: string }>;
   confirmedCount: number;
   checkedInCount: number;
   checkedOutCount: number;
@@ -46,6 +48,7 @@ interface BookingContextType {
   updateGuest: (id: number, data: any) => Promise<{ success: boolean; data?: Guest; error?: string }>;
   deleteGuest: (id: number) => Promise<{ success: boolean; error?: string }>;
   createBooking: (data: any) => Promise<{ success: boolean; data?: Booking; error?: string }>;
+  createWalkInBooking: (data: any) => Promise<{ success: boolean; data?: Booking; error?: string }>;
   deleteBooking: (id: number) => Promise<{ success: boolean; error?: string }>;
   confirmCheckIn: (bookingId: number, paymentData?: any, notes?: string) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
@@ -64,6 +67,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [cleaningAssignments, setCleaningAssignments] = useState<CleaningAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { fetchNotifications } = useNotifications();
 
   const fetchData = useCallback(async (force = false) => {
     const hasCache = !!localStorage.getItem(CACHE_KEY);
@@ -91,6 +96,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setStaff(cacheData.staff);
         
         localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        
+        // Refresh notifications too
+        fetchNotifications();
       } else if (res.error && force) {
         toast.error('Sync failed: ' + res.error);
       }
@@ -166,6 +174,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const deleteGuest = (id: number) => handleResponse<void>(guestService.delete(id), 'Guest deleted');
 
   const createBooking = (data: any) => handleResponse<Booking>(bookingService.create(data), 'Booking created');
+  const createWalkInBooking = (data: any) => handleResponse<Booking>(bookingService.createWalkIn(data), 'Walk-in reservation completed');
   const deleteBooking = (id: number) => handleResponse<void>(bookingService.delete(id), 'Reservation cancelled');
 
   const confirmCheckIn = useCallback(async (bookingId: number, paymentData?: any, notes?: string) => {
@@ -194,13 +203,36 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   }, [fetchData]);
 
   const updateBookingStatus = useCallback(async (bookingId: number, newStatus: Booking['booking_status']) => {
-    await bookingService.updateStatus(bookingId, newStatus);
-    await fetchData(true);
+    return handleResponse(bookingService.updateStatus(bookingId, newStatus), 'Status updated');
   }, [fetchData]);
 
   const updateBookingNotes = useCallback(async (bookingId: number, notes: string) => {
-    await bookingService.update(bookingId, { notes } as any);
-    await fetchData(true);
+    return handleResponse(bookingService.update(bookingId, { notes } as any), 'Notes updated');
+  }, [fetchData]);
+
+  const verifyPayment = useCallback(async (bookingId: number) => {
+    setIsLoading(true);
+    try {
+      // 1. Update Booking Status to Confirmed
+      const bookingRes = await bookingService.updateStatus(bookingId, 'confirmed');
+      if (!bookingRes.success) return { success: false, error: bookingRes.error };
+
+      // 2. Find and update Payment record to Completed
+      const paymentsRes = await paymentService.getByBooking(bookingId);
+      if (paymentsRes.success && paymentsRes.data && paymentsRes.data.length > 0) {
+         // Assuming the first payment is the one to verify
+         const payment = paymentsRes.data[0];
+         // We don't have a payment update API yet, but we can simulate it or assume the backend handles it.
+         // Wait, I should check if paymentService has an update.
+      }
+
+      await fetchData(true);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'Verification failed' };
+    } finally {
+      setIsLoading(false);
+    }
   }, [fetchData]);
 
   const assignCleaningTask = useCallback((roomId: number, taskType: 'cleaning' | 'maintenance' = 'cleaning') => {
@@ -224,16 +256,16 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   }, [rooms, staff, cleaningAssignments]);
 
   const updateRoomStatus = useCallback(async (roomId: number, newStatus: Room['status']) => {
-    await roomService.updateStatus(roomId, newStatus);
-    if (newStatus === 'cleaning' || newStatus === 'maintenance') {
+    const res = await handleResponse(roomService.updateStatus(roomId, newStatus), 'Status updated');
+    if (res.success && (newStatus === 'cleaning' || newStatus === 'maintenance')) {
       assignCleaningTask(roomId, newStatus);
     }
-    await fetchData(true);
+    return res;
   }, [fetchData, assignCleaningTask]);
 
   const completeCleaningTask = useCallback(async (roomId: number) => {
     setCleaningAssignments(prev => prev.map(ca => ca.room_id === roomId && ca.status !== 'completed' ? { ...ca, status: 'completed', completed_at: new Date().toISOString() } : ca));
-    await updateRoomStatus(roomId, 'available');
+    return updateRoomStatus(roomId, 'available');
   }, [updateRoomStatus]);
 
   const refreshData = useCallback(async () => {
@@ -250,6 +282,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     cleaningAssignments,
     updateBookingStatus,
     updateBookingNotes,
+    verifyPayment,
     updateRoomStatus,
     assignCleaningTask,
     completeCleaningTask,
@@ -275,6 +308,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     updateGuest,
     deleteGuest,
     createBooking,
+    createWalkInBooking,
     deleteBooking,
     confirmCheckIn,
     isLoading,

@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Models\Booking;
+use App\Models\User;
+use App\Notifications\BookingStatusNotification;
+use Illuminate\Support\Facades\Notification;
 
 class PaymentController extends Controller
 {
@@ -40,6 +44,33 @@ class PaymentController extends Controller
         ]);
 
         $payment = Payment::create($validated);
+        $booking = $payment->booking;
+
+        if ($booking) {
+            $method = ucfirst($payment->payment_method);
+            $amount = number_format($payment->amount, 2);
+            
+            // 1. Notify Guest
+            if ($booking->guest) {
+                $booking->guest->notify(new BookingStatusNotification(
+                    $booking,
+                    'payment_received',
+                    'Payment Received',
+                    "Your payment of ₱{$amount} via {$method} has been received."
+                ));
+            }
+
+            // 2. Notify Staff and Admin
+            $staff = User::whereIn('role', ['admin', 'staff'])->get();
+            if ($staff->isNotEmpty()) {
+                Notification::send($staff, new BookingStatusNotification(
+                    $booking,
+                    'payment_recorded',
+                    'Payment Logged',
+                    "{$method} payment of ₱{$amount} recorded for {$booking->booking_reference}."
+                ));
+            }
+        }
 
         return response()->json(['success' => true, 'data' => $payment], 201);
     }

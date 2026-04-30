@@ -1,0 +1,21 @@
+{
+  "name": "@jayson1215/skills",
+  "version": "1.0.0",
+  "description": "Jayson1215's personal AI Agent skills and ruleset generator",
+  "main": "index.js",
+  "bin": {
+    "jayson1215-skills": "index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "cursorrules",
+    "skills",
+    "hotel-booking"
+  ],
+  "author": "Jayson1215",
+  "license": "MIT"
+}

@@ -55,6 +55,9 @@ class RoomController extends Controller
     {
         $validated = $request->validate([
             'hotel_id' => 'required|exists:hotels,id',
+            'room_type_id' => 'required|exists:room_types,room_type_id',
+            'room_number' => 'required|string|max:255',
+            'floor' => 'required|string|max:255',
             'status' => 'in:available,occupied,maintenance,reserved',
             'notes' => 'nullable|string',
         ]);
@@ -101,5 +104,14 @@ class RoomController extends Controller
         $room->update($validated);
 
         return response()->json(['success' => true, 'data' => $room->refresh()]);
+    }
+
+    /**
+     * Delete a room.
+     */
+    public function destroy(Room $room): JsonResponse
+    {
+        $room->delete();
+        return response()->json(['success' => true, 'message' => 'Room deleted']);
     }
 }

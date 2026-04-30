@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
-import { Calendar, MapPin, Search, BedDouble, ChevronRight, X, Receipt, Info, ShieldCheck, User } from 'lucide-react';
+import { Calendar, MapPin, Search, BedDouble, ChevronRight, X, Receipt, Info, ShieldCheck, User, CreditCard, Banknote } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import {
@@ -18,10 +20,13 @@ export function ClientBookings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { bookings: contextBookings, hotels, deleteBooking, rooms: allRooms, guests, roomTypes } = useBooking();
+  const { bookings: contextBookings, hotels, deleteBooking, rooms: allRooms, guests, roomTypes, updateBookingNotes } = useBooking();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'all'>('all');
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
@@ -31,9 +36,8 @@ export function ClientBookings() {
 
   // Match bookings by guest_id (if they are a registered guest) OR by user email (fallback)
   const userBookings = contextBookings.filter(b => {
-    // Exact match if user.id matches guest_id
-    if (user?.id && b.guest_id === user.id) return true;
-    
+    // Ensure we do NOT match user.id against guest.id. They are from different DB tables!
+    // We only check if the booking's guest email matches the logged-in user email:
     // Fallback: Check if the guest associated with this booking has the same email as the logged-in user
     const bookingGuest = b.guest || guests.find(g => g.id === b.guest_id);
     if (bookingGuest && user?.email && bookingGuest.email === user.email) return true;
@@ -57,7 +61,7 @@ export function ClientBookings() {
     switch (status) {
       case 'confirmed': return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200/50', label: 'Confirmed' };
       case 'checked-in': return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200/50', label: 'In Residence' };
-      case 'pending': return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200/50', label: 'Waiting Approval' };
+      case 'pending': return { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200/50', label: 'Waiting Approval' };
       case 'reserved': return { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200/50', label: 'Reserved' };
       case 'checked-out': return { bg: 'bg-stone-50', text: 'text-stone-500', border: 'border-stone-200/50', label: 'Completed' };
       case 'cancelled': return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200/50', label: 'Cancelled' };
@@ -127,25 +131,25 @@ export function ClientBookings() {
   };
 
   return (
-    <div className="bg-[#FAFAF9] min-h-screen font-sans -mt-8 -mx-4 md:-mx-8 lg:-mx-12 px-4 md:px-8 lg:px-12 py-12">
+    <div className="bg-stone-100 min-h-screen font-sans -mt-8 -mx-4 md:-mx-8 lg:-mx-12 px-4 md:px-8 lg:px-12 py-12">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold uppercase tracking-widest">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold uppercase tracking-widest border border-emerald-200">
               <ShieldCheck size={12} />
               Verified Guest
             </div>
             <h1 className="text-5xl font-black text-stone-900 tracking-tight leading-none">
-              Your <span className="text-amber-600">Journeys.</span>
+              Your <span className="text-emerald-600">Journeys.</span>
             </h1>
-            <p className="text-stone-500 font-medium max-w-md">
+            <p className="text-stone-950 font-black max-w-md">
               Manage your upcoming stays and relive your past experiences at our world-class destinations.
             </p>
           </div>
 
           <div className="flex flex-col items-start md:items-end gap-4">
-            <div className="bg-white p-1.5 rounded-2xl shadow-xl shadow-stone-200/50 border border-stone-200/60 flex items-center backdrop-blur-sm">
+            <div className="bg-white p-1.5 rounded-2xl shadow-lg shadow-stone-300/40 border border-stone-200 flex items-center backdrop-blur-sm">
               {(['all', 'upcoming', 'past'] as const).map(tab => (
                 <button
                   key={tab}
@@ -154,7 +158,7 @@ export function ClientBookings() {
                     "px-8 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300",
                     activeTab === tab 
                       ? "bg-stone-900 text-white shadow-lg" 
-                      : "text-stone-400 hover:text-stone-900 hover:bg-stone-50"
+                      : "text-stone-900 font-black hover:bg-stone-100"
                   )}
                 >
                   {tab}
@@ -166,19 +170,19 @@ export function ClientBookings() {
 
         {/* Content Section */}
         {filteredBookings.length === 0 ? (
-          <div className="bg-white rounded-[2.5rem] border border-stone-100 py-32 text-center shadow-xl shadow-stone-200/40 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50 group-hover:bg-amber-100 transition-colors" />
+          <div className="bg-white rounded-[2.5rem] border border-stone-200 py-32 text-center shadow-lg shadow-stone-200/40 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50 group-hover:bg-emerald-100 transition-colors" />
             <div className="relative z-10">
-              <div className="w-24 h-24 bg-stone-50 rounded-3xl mx-auto flex items-center justify-center mb-8 border border-stone-100 group-hover:scale-110 transition-transform duration-500">
-                <Search className="w-10 h-10 text-stone-200" />
+              <div className="w-24 h-24 bg-stone-100 rounded-3xl mx-auto flex items-center justify-center mb-8 border border-stone-200 group-hover:scale-110 transition-transform duration-500">
+                <Search className="w-10 h-10 text-stone-400" />
               </div>
-              <h3 className="text-2xl font-bold text-stone-900 mb-3">No Stays Found</h3>
-              <p className="text-stone-500 max-w-sm mx-auto mb-10 leading-relaxed font-medium">
+              <h3 className="text-2xl font-black text-stone-950 mb-3">No Stays Found</h3>
+              <p className="text-stone-900 max-w-sm mx-auto mb-10 leading-relaxed font-black">
                 Your next extraordinary adventure hasn't been written yet. Where would you like to go next?
               </p>
               <Button 
                 onClick={() => navigate('/client/search')}
-                className="h-14 px-12 bg-amber-600 hover:bg-amber-700 text-white font-bold uppercase tracking-[0.2em] text-[11px] rounded-2xl shadow-xl shadow-amber-600/20 active:scale-95 transition-all"
+                className="h-14 px-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-[0.2em] text-[11px] rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
               >
                 Find Your Haven
               </Button>
@@ -197,8 +201,8 @@ export function ClientBookings() {
                   ref={el => bookingRefs.current[booking.booking_id] = el}
                   onClick={() => { setSelectedBooking(booking); setIsDetailsOpen(true); }}
                   className={cn(
-                    "bg-white rounded-[2rem] border-2 border-transparent p-4 md:p-6 cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-stone-200/60 overflow-hidden relative",
-                    highlightedId === booking.booking_id ? "border-amber-500 shadow-2xl" : "hover:border-stone-100 shadow-sm"
+                    "bg-white rounded-[2rem] border-2 border-transparent p-4 md:p-6 cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-stone-300/50 overflow-hidden relative",
+                    highlightedId === booking.booking_id ? "border-emerald-500 shadow-2xl" : "hover:border-stone-200 shadow-md shadow-stone-200/30"
                   )}
                 >
                   <div className="flex flex-col lg:flex-row gap-8 items-stretch">
@@ -222,50 +226,50 @@ export function ClientBookings() {
                           )}>
                             {statusStyle.label}
                           </span>
-                          <span className="text-[10px] font-bold text-stone-400 border border-stone-100 px-4 py-1.5 rounded-full uppercase tracking-widest">
+                          <span className="text-[10px] font-black text-stone-900 border border-stone-200 px-4 py-1.5 rounded-full uppercase tracking-widest">
                             Ref: {booking.booking_reference}
                           </span>
                         </div>
                         
-                        <h3 className="text-3xl font-black text-stone-900 tracking-tight mb-4 group-hover:text-amber-600 transition-colors">
+                        <h3 className="text-3xl font-black text-stone-900 tracking-tight mb-4 group-hover:text-emerald-600 transition-colors">
                           {hotel?.name}
                         </h3>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
                           <div className="space-y-1">
-                            <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Date & Duration</p>
-                            <p className="text-sm font-bold text-stone-700 flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-amber-500" />
+                            <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest">Date & Duration</p>
+                            <p className="text-sm font-black text-stone-950 flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-emerald-600" />
                               {format(new Date(booking.checkin_date), 'MMM dd')} - {format(new Date(booking.checkout_date), 'MMM dd, yyyy')}
-                              <span className="ml-1 text-stone-400 font-medium">({nights} nights)</span>
+                              <span className="ml-1 text-stone-900 font-black">({nights} nights)</span>
                             </p>
                           </div>
                           
                           <div className="space-y-1">
-                            <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Location</p>
-                            <p className="text-sm font-bold text-stone-700 flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-stone-400" />
+                            <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest">Location</p>
+                            <p className="text-sm font-black text-stone-950 flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-stone-900" />
                               {hotel?.city}, {hotel?.address?.split(',').pop()?.trim() || 'Philippines'}
                             </p>
                           </div>
 
                           <div className="space-y-1">
-                            <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Room</p>
+                            <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest">Room</p>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-stone-100 bg-stone-50">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-stone-200 bg-stone-100">
                                 {(() => {
                                   const roomTypeId = booking.booking_rooms?.[0]?.room?.room_type_id;
                                   const rt = roomTypes.find(type => type.room_type_id === roomTypeId);
                                   return rt?.image_url ? (
                                     <img src={rt.image_url} alt="" className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-stone-50 text-stone-200">
+                                    <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-900">
                                       <BedDouble size={16} />
                                     </div>
                                   );
                                 })()}
                               </div>
-                              <p className="text-sm font-bold text-stone-700 leading-tight">
+                              <p className="text-sm font-bold text-stone-800 leading-tight">
                                 {booking.booking_rooms?.[0]?.room?.room_type?.name || 'Standard Luxury'}
                               </p>
                             </div>
@@ -273,10 +277,10 @@ export function ClientBookings() {
                         </div>
                       </div>
 
-                      <div className="mt-8 pt-6 border-t border-stone-100 flex items-center justify-between">
+                      <div className="mt-8 pt-6 border-t border-stone-200 flex items-center justify-between">
                         <div>
-                          <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-1">Total Stay Investment</p>
-                          <p className="text-3xl font-black text-stone-900">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
+                          <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest mb-1">Total Stay Investment</p>
+                          <p className="text-3xl font-black text-stone-950">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
                         </div>
                         <Button 
                           variant="ghost" 
@@ -298,7 +302,7 @@ export function ClientBookings() {
       {/* Booking Details Modal */}
       {selectedBooking && (
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-          <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl border border-stone-200 shadow-2xl bg-white">
+          <DialogContent className="sm:max-w-3xl p-0 overflow-hidden rounded-2xl border border-stone-200 shadow-2xl bg-white">
             <DialogTitle className="sr-only">Reservation Details for {selectedBooking.booking_reference}</DialogTitle>
             
             {/* Downloadable Area */}
@@ -312,7 +316,7 @@ export function ClientBookings() {
                </div>
               
               <div className="flex items-center gap-2 mb-3">
-                 <span className="text-[9px] font-bold px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full uppercase tracking-widest">
+                 <span className="text-[9px] font-bold px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full uppercase tracking-widest">
                     Reservation Receipt
                  </span>
                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
@@ -320,12 +324,12 @@ export function ClientBookings() {
                  </span>
               </div>
               
-              <h2 className="text-2xl font-bold tracking-tight mb-2">
+              <h2 className="text-2xl font-bold tracking-tight mb-2 leading-tight">
                  {(selectedBooking.hotel || hotels.find(h => h.id === selectedBooking.hotel_id))?.name}
               </h2>
-              <div className="flex items-center gap-4 text-[10px] font-medium text-white/50 uppercase tracking-widest">
-                 <span className="flex items-center gap-1.5"><MapPin size={12} className="text-amber-400/60" /> {(selectedBooking.hotel || hotels.find(h => h.id === selectedBooking.hotel_id))?.city}</span>
-                 <span className="flex items-center gap-1.5"><Calendar size={12} className="text-amber-400/60" /> {new Date(selectedBooking.checkin_date).toLocaleDateString()} — {new Date(selectedBooking.checkout_date).toLocaleDateString()}</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-medium text-white/50 uppercase tracking-widest">
+                 <span className="flex items-center gap-1.5 whitespace-nowrap"><MapPin size={12} className="text-emerald-400/60" /> {(selectedBooking.hotel || hotels.find(h => h.id === selectedBooking.hotel_id))?.city}</span>
+                 <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={12} className="text-emerald-400/60" /> {new Date(selectedBooking.checkin_date).toLocaleDateString()} — {new Date(selectedBooking.checkout_date).toLocaleDateString()}</span>
               </div>
             </div>
 
@@ -334,7 +338,7 @@ export function ClientBookings() {
                   {/* Guest Info */}
                   <div className="space-y-3">
                      <div className="flex items-center gap-2 border-b border-stone-100 pb-2">
-                        <User className="text-amber-500" size={14} />
+                        <User className="text-emerald-500" size={14} />
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-600">Guest Information</h3>
                      </div>
                      <div className="space-y-2.5">
@@ -358,7 +362,7 @@ export function ClientBookings() {
                   {/* Room Info */}
                   <div className="space-y-3">
                      <div className="flex items-center gap-2 border-b border-stone-100 pb-2">
-                        <BedDouble className="text-amber-500" size={14} />
+                        <BedDouble className="text-emerald-500" size={14} />
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-600">Room & Stay</h3>
                      </div>
                      <div className="space-y-2.5">
@@ -377,17 +381,17 @@ export function ClientBookings() {
                               })()}
                            </div>
                            <div className="flex-1">
-                              <p className="text-sm font-bold text-stone-900 leading-tight">
+                              <p className="text-sm font-black text-stone-950 leading-tight">
                                  {selectedBooking.booking_rooms?.[0]?.room?.room_type?.name || 'Luxury Suite'}
                               </p>
-                              <p className="text-[10px] text-stone-500 font-medium uppercase tracking-widest mt-1">
+                              <p className="text-[10px] text-stone-900 font-black uppercase tracking-widest mt-1">
                                  {getNights(selectedBooking.checkin_date, selectedBooking.checkout_date)} Nights
                               </p>
                            </div>
                         </div>
-                        <div className="flex justify-between items-center text-xs">
-                           <span className="font-medium text-stone-600">Room Assignment</span>
-                           <span className="font-bold text-stone-700">
+                        <div className="flex justify-between items-start gap-4 text-xs">
+                           <span className="font-medium text-stone-600 shrink-0">Room Assignment</span>
+                           <span className="font-bold text-stone-700 text-right">
                               {(() => { const rid = selectedBooking.room_id || (selectedBooking.booking_rooms && selectedBooking.booking_rooms[0]?.room_id); const r = allRooms.find(rm => rm.room_id === rid); return r ? `Room ${r.room_number} (Floor ${r.floor})` : 'Awaiting Assignment'; })()}
                            </span>
                         </div>
@@ -398,50 +402,181 @@ export function ClientBookings() {
                {/* Financial Summary */}
                <div className="space-y-3 pt-2">
                   <div className="flex items-center gap-2 border-b border-stone-100 pb-2">
-                     <Receipt className="text-amber-500" size={14} />
+                     <Receipt className="text-emerald-500" size={14} />
                      <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-600">Financial Summary</h3>
                   </div>
-                  <div className="bg-stone-50 rounded-xl p-5 border border-stone-100">
-                     <div className="flex justify-between items-center">
-                        <div className="space-y-2 w-full max-w-[200px]">
-                           <div className="flex justify-between items-center text-[10px]">
-                              <span className="font-medium text-stone-600 uppercase tracking-wider">Method</span>
-                              <span className="font-bold text-stone-600">{selectedBooking.notes?.match(/Payment: (.*?),/)?.[1] || 'Card'}</span>
-                           </div>
-                           <div className="flex justify-between items-center text-[10px]">
-                              <span className="font-medium text-stone-600 uppercase tracking-wider">Downpayment</span>
-                              <span className="font-bold text-emerald-600">{selectedBooking.notes?.match(/Downpayment: (.*?),/)?.[1] || '₱0'}</span>
-                           </div>
-                           <div className="flex justify-between items-center text-[10px]">
-                              <span className="font-medium text-stone-600 uppercase tracking-wider">Balance</span>
-                              <span className="font-bold text-amber-600">{selectedBooking.notes?.match(/Balance: (.*)/)?.[1] || '₱0'}</span>
-                           </div>
+                    <div className="bg-stone-50 rounded-xl p-5 border border-stone-100">
+                       <div className="flex justify-between items-center gap-8">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex justify-between items-center text-[10px]">
+                               <span className="font-medium text-stone-600 uppercase tracking-wider">Method</span>
+                               <span className="font-bold text-stone-600">{selectedBooking.notes?.match(/Payment: (.*?), Discount/)?.[1] || 'Card'}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px]">
+                               <span className="font-medium text-stone-600 uppercase tracking-wider">Payments Made</span>
+                               <span className="font-bold text-emerald-600">
+                                  ₱{(selectedBooking.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0).toLocaleString()}
+                               </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px]">
+                               <span className="font-medium text-stone-600 uppercase tracking-wider">Remaining Balance</span>
+                               <span className={cn(
+                                  "font-bold",
+                                  (Number(selectedBooking.total_cost) - (selectedBooking.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0)) <= 0 
+                                     ? "text-emerald-600" 
+                                     : "text-orange-600"
+                               )}>
+                                  {(() => {
+                                     const balance = Number(selectedBooking.total_cost) - (selectedBooking.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0);
+                                     return balance <= 0 ? 'Paid in Full' : `₱${balance.toLocaleString()}`;
+                                  })()}
+                               </span>
+                            </div>
+                            {selectedBooking.notes?.includes('Ref:') && (
+                                <div className="flex justify-between items-center text-[10px] pt-1 border-t border-stone-200 mt-1">
+                                   <span className="font-medium text-emerald-700 uppercase tracking-wider">Reference</span>
+                                   <span className="font-black text-emerald-700 truncate ml-4">
+                                      {selectedBooking.notes?.match(/(GCash|Maya) Ref: (.*?),/)?.[0]?.replace(',', '') || selectedBooking.notes?.match(/(GCash|Maya) Ref: (.*)/)?.[0]}
+                                   </span>
+                                </div>
+                             )}
                         </div>
                         
                         <div className="text-right border-l border-stone-200 pl-5">
-                           <p className="text-[9px] font-bold text-stone-600 uppercase tracking-widest mb-1">Total</p>
-                           <p className="text-2xl font-black tracking-tight text-stone-900">₱{Number(selectedBooking.total_cost || 0).toLocaleString()}</p>
-                           <p className="text-[9px] font-medium text-stone-600 mt-0.5">VAT INCLUDED</p>
+                           <p className="text-[9px] font-black text-stone-900 uppercase tracking-widest mb-1">Total</p>
+                           <p className="text-2xl font-black tracking-tight text-stone-950">₱{Number(selectedBooking.total_cost || 0).toLocaleString()}</p>
+                           <p className="text-[9px] font-black text-stone-900 mt-0.5">VAT INCLUDED</p>
                         </div>
                      </div>
                   </div>
                </div>
 
                {/* Cancellation Policy */}
-               <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex items-start gap-3">
-                  <Info className="text-amber-500 shrink-0" size={16} />
+               <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex items-start gap-3">
+                  <Info className="text-emerald-500 shrink-0" size={16} />
                   <div>
-                     <h4 className="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Cancellation Policy</h4>
-                     <p className="text-xs text-amber-700/70 leading-relaxed font-medium">
+                     <h4 className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest mb-1">Cancellation Policy</h4>
+                     <p className="text-xs text-emerald-700/70 leading-relaxed font-medium">
                         Cancellations processed before {new Date(new Date(selectedBooking.checkin_date).getTime() - 86400000).toLocaleDateString()} are eligible for a full downpayment refund.
                      </p>
                   </div>
+               </div>
+
+               {/* Integrated Payment Section */}
+               <div className="pt-2">
+                 <div className="flex items-center gap-2 border-b border-stone-100 pb-2 mb-4">
+                    <CreditCard className="text-emerald-500" size={14} />
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-600">Settlement Status</h3>
+                 </div>
+
+                  {(() => {
+                    const balance = Number(selectedBooking.total_cost) - (selectedBooking.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0);
+                    
+                    if (balance <= 0) {
+                      return (
+                        <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 text-center">
+                           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                              <ShieldCheck className="text-emerald-500 w-6 h-6" />
+                           </div>
+                           <h4 className="text-sm font-black text-emerald-900 mb-1 uppercase tracking-tight">Stay Settled</h4>
+                           <p className="text-xs text-emerald-700 font-black mb-4">This stay has been paid in full. We hope you enjoy your experience!</p>
+                           <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[9px] font-black uppercase tracking-widest px-3 py-1">Status: Paid in Full</Badge>
+                        </div>
+                      );
+                    }
+
+                    if (selectedBooking.notes?.includes('Payment: Cash')) {
+                      return (
+                        <div className="bg-stone-50 rounded-2xl p-6 border border-stone-100 text-center">
+                           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                              <Banknote className="text-stone-400 w-6 h-6" />
+                           </div>
+                           <h4 className="text-sm font-black text-stone-900 mb-1 uppercase tracking-tight">Pay at Hotel</h4>
+                           <p className="text-xs text-stone-900 font-black mb-4">Please prepare ₱{balance.toLocaleString()} for settlement upon check-in.</p>
+                           <Badge className="bg-stone-200 text-stone-600 border-0 text-[9px] font-black uppercase tracking-widest px-3 py-1">Status: Unpaid</Badge>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="bg-stone-50 rounded-2xl p-6 border border-stone-100">
+                         {selectedBooking.notes?.includes('Ref:') ? (
+                            <div className="text-center py-4">
+                               <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                  <ShieldCheck className="text-emerald-500 w-6 h-6" />
+                               </div>
+                               <h4 className="text-sm font-black text-stone-900 mb-1 uppercase tracking-tight">Payment Submitted</h4>
+                               <p className="text-xs text-stone-900 font-black mb-4">Reference: <span className="text-emerald-600">{selectedBooking.notes?.match(/Ref: (.*?),/)?.[1] || selectedBooking.notes?.match(/Ref: (.*)/)?.[1]}</span></p>
+                               <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[9px] font-black uppercase tracking-widest px-3 py-1 animate-pulse">Status: Pending Verification</Badge>
+                            </div>
+                         ) : (
+                            <div className="space-y-6">
+                               <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Account Name</p>
+                                     <p className="text-xs font-black text-stone-900">INNTERA HOTELS INC.</p>
+                                  </div>
+                                  <div className="space-y-1">
+                                     <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{selectedBooking.notes?.includes('Payment: Maya') ? 'Maya' : 'GCash'} Number</p>
+                                     <p className="text-xs font-black text-stone-900">0968 572 8496</p>
+                                  </div>
+                               </div>
+
+                               <div className="space-y-3">
+                                  <label className="text-[10px] font-black text-stone-900 uppercase tracking-widest flex justify-between">
+                                     <span>Enter 13-digit Reference ID</span>
+                                     <span className={cn(
+                                       "text-[9px] font-bold",
+                                       referenceNumber.length === 13 ? "text-emerald-500" : "text-stone-400"
+                                     )}>{referenceNumber.length}/13</span>
+                                  </label>
+                                  <div className="relative">
+                                     <Input 
+                                        value={referenceNumber}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setReferenceNumber(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                                        placeholder="0000 0000 0000 0"
+                                        className="h-12 border-stone-200 focus:ring-emerald-500 rounded-xl font-bold bg-white text-lg tracking-[0.2em] text-center"
+                                     />
+                                  </div>
+                               </div>
+
+                               <Button 
+                                  className="w-full h-12 bg-stone-900 hover:bg-stone-800 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all shadow-lg shadow-stone-200 active:scale-95"
+                                  disabled={referenceNumber.length !== 13 || isSubmittingPayment}
+                                  onClick={async () => {
+                                     setIsSubmittingPayment(true);
+                                     const walletName = selectedBooking.notes?.includes('Payment: Maya') ? 'Maya' : 'GCash';
+                                     const updatedNotes = `${selectedBooking.notes}, ${walletName} Ref: ${referenceNumber}`;
+                                     
+                                     try {
+                                        await updateBookingNotes(selectedBooking.booking_id, updatedNotes);
+                                        toast.success('Reference Submitted', {
+                                           description: 'Staff will verify your payment shortly.',
+                                           icon: <ShieldCheck className="text-emerald-500" />
+                                        });
+                                        setReferenceNumber('');
+                                        // Refresh details is handled by context sync
+                                     } catch (error) {
+                                        toast.error('Submission failed. Please try again.');
+                                     } finally {
+                                        setIsSubmittingPayment(false);
+                                     }
+                                  }}
+                               >
+                                  {isSubmittingPayment ? 'Submitting...' : 'Submit Payment Reference'}
+                               </Button>
+                               <p className="text-[9px] text-stone-400 font-medium text-center">Your booking will be confirmed once payment is verified.</p>
+                            </div>
+                         )}
+                      </div>
+                    );
+                  })()}
                </div>
             </div>
             </div>
 
             <DialogFooter className="px-6 py-4 flex flex-col sm:flex-row items-center gap-3 border-t border-stone-100 bg-stone-50/50">
-               <div className="flex-1 w-full flex justify-start">
+                <div className="flex-1 w-full flex justify-start gap-2">
                   <Button 
                     variant="outline" 
                     onClick={handleDownloadPDF}
@@ -450,17 +585,19 @@ export function ClientBookings() {
                   >
                     {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
                   </Button>
+
                </div>
-               <div className="flex gap-2 w-full sm:w-auto">
-                  <Button 
-                    variant="ghost" 
-                    className="h-9 px-4 rounded-xl font-bold uppercase tracking-widest text-[10px] text-stone-600 hover:text-stone-700 hover:bg-stone-100"
-                    onClick={() => setIsDetailsOpen(false)}
-                  >
-                    Dismiss
-                  </Button>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center sm:justify-end">
+                   <Button 
+                     variant="ghost" 
+                     className="h-9 px-4 rounded-xl font-bold uppercase tracking-widest text-[10px] text-stone-600 hover:text-stone-700 hover:bg-stone-100"
+                     onClick={() => setIsDetailsOpen(false)}
+                   >
+                     Dismiss
+                   </Button>
                   
-                  {canCancel(selectedBooking.checkin_date) && selectedBooking.booking_status !== 'cancelled' && (
+                  {canCancel(selectedBooking.checkin_date) && 
+                   !['cancelled', 'checked-in', 'checked-out'].includes(selectedBooking.booking_status) && (
                     <Button 
                       onClick={() => handleCancelBooking(selectedBooking.booking_id)}
                       disabled={isCancelling}
@@ -474,6 +611,91 @@ export function ClientBookings() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Local E-wallet Payment Dialog */}
+      <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-none shadow-2xl bg-white">
+           <div className="bg-stone-900 p-8 text-white relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+              <DialogTitle className="text-2xl font-black tracking-tight">Manual {selectedBooking?.notes?.includes('Payment: Maya') ? 'Maya' : 'GCash'} Transfer</DialogTitle>
+              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1">Local Payment Verification</p>
+           </div>
+           
+           <div className="p-8 space-y-6">
+              <div className="bg-stone-50 p-6 rounded-2xl border border-stone-100">
+                 <p className="text-[10px] font-black text-stone-900 uppercase tracking-widest mb-4">Transfer Instructions</p>
+                 <div className="space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                       <span className="text-stone-600 font-bold">{selectedBooking?.notes?.includes('Payment: Maya') ? 'Maya' : 'GCash'} Number</span>
+                       <span className="text-stone-900 font-black">0968 572 8496</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                       <span className="text-stone-600 font-bold">Account Name</span>
+                       <span className="text-stone-900 font-black">INNTERA HOTELS INC.</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                       <span className="text-stone-600 font-bold">Amount to Send</span>
+                       <span className="text-emerald-600 font-black text-lg">₱{selectedBooking ? selectedBooking.notes?.match(/Downpayment: (.*?),/)?.[1] : '0'}</span>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="space-y-3">
+                 <label className="text-[10px] font-black text-stone-900 uppercase tracking-widest">{selectedBooking?.notes?.includes('Payment: Maya') ? 'Maya' : 'GCash'} Reference Number</label>
+                 <input 
+                    type="text" 
+                    placeholder="Enter Reference ID" 
+                    className="w-full h-12 px-4 rounded-xl border border-stone-200 bg-stone-50 font-bold text-stone-900 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                 />
+                 <p className="text-[9px] text-stone-500 font-medium">This can be found in your e-wallet SMS or App Transaction History.</p>
+              </div>
+           </div>
+
+           <div className="p-8 bg-stone-50 border-t border-stone-100 flex flex-col gap-3">
+              <Button 
+                className="h-12 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg shadow-emerald-500/20"
+                disabled={!referenceNumber || isSubmittingPayment}
+                onClick={async () => {
+                  if (referenceNumber.length < 6) {
+                    toast.error('Please enter a valid Reference Number');
+                    return;
+                  }
+                  
+                  setIsSubmittingPayment(true);
+                  const walletName = selectedBooking?.notes?.includes('Payment: Maya') ? 'Maya' : 'GCash';
+                  const updatedNotes = `${selectedBooking.notes}, ${walletName} Ref: ${referenceNumber}, Paid At: ${new Date().toLocaleString()}`;
+                  
+                  try {
+                    await updateBookingNotes(selectedBooking.booking_id, updatedNotes);
+                    
+                    toast.success('Payment Sent', {
+                      description: `Your ${walletName} reference has been submitted. Staff will verify it shortly.`,
+                      icon: <ShieldCheck className="text-emerald-500" />
+                    });
+                    
+                    setIsPaymentOpen(false);
+                    setReferenceNumber('');
+                  } catch (error) {
+                    toast.error('Failed to submit payment details. Please try again.');
+                  } finally {
+                    setIsSubmittingPayment(false);
+                  }
+                }}
+              >
+                {isSubmittingPayment ? 'Verifying...' : 'Confirm Transfer'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="h-10 w-full text-[10px] font-black text-stone-900 uppercase tracking-widest"
+                onClick={() => setIsPaymentOpen(false)}
+              >
+                Back to Details
+              </Button>
+           </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

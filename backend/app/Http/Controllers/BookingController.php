@@ -15,11 +15,40 @@ use Illuminate\Support\Str;
 use App\Models\User;
 use App\Notifications\RoomBookedNotification;
 use App\Notifications\BookingConfirmedNotification;
+use App\Notifications\BookingCheckedInNotification;
+use App\Notifications\BookingStatusNotification;
 use Illuminate\Support\Facades\Notification;
 
 class BookingController extends Controller
 {
     use FiltersFillableData;
+
+    /**
+     * Broadcast notification to Guest, Staff, and Admin.
+     */
+    protected function broadcastBookingNotification($booking, $guestMessage, $staffMessage, $adminMessage, $type)
+    {
+        // 1. Notify Guest
+        if ($booking->guest) {
+            $booking->guest->notify(new BookingStatusNotification(
+                $booking, 
+                $type, 
+                'Inntera Update', 
+                $guestMessage
+            ));
+        }
+
+        // 2. Notify Staff and Admin
+        $users = User::whereIn('role', ['admin', 'staff'])->get();
+        if ($users->isNotEmpty()) {
+            Notification::send($users, new BookingStatusNotification(
+                $booking,
+                $type,
+                $type === 'new_booking' ? 'New Reservation' : 'Booking Update',
+                ($type === 'new_booking' ? $adminMessage : $staffMessage)
+            ));
+        }
+    }
 
     /**
      * List bookings with selective eager loading.
@@ -165,13 +194,17 @@ class BookingController extends Controller
                     throw new \Exception('Guest details or valid guest ID must be provided');
                 }
 
+                $guestRecord = Guest::find($guestId);
+                $guestName = $guestRecord ? trim($guestRecord->first_name . ' ' . $guestRecord->last_name) : 'Unknown Guest';
+
                 $booking = Booking::create([
                     'booking_reference' => Booking::generateReference(),
                     'guest_id' => $guestId,
+                    'guest_name' => $guestName,
                     'hotel_id' => $validated['hotel_id'],
                     'checkin_date' => $validated['checkin_date'],
                     'checkout_date' => $validated['checkout_date'],
-                    'total_cost' => $validated['total_cost'],
+                    'total_cost' => floatval(str_replace(',', '', $validated['total_cost'])),
                     'notes' => $validated['notes'] ?? null,
                     'booking_status' => 'pending',
                 ]);
@@ -286,6 +319,7 @@ class BookingController extends Controller
                         'GCash' => 'gcash',
                         'PayPal' => 'paypal',
                         'PayMaya' => 'paymaya',
+                        'Maya' => 'paymaya',
                         'Debit Card' => 'debit_card',
                         'Credit Card' => 'credit_card',
                         'Bank Transfer' => 'bank_transfer',
@@ -295,8 +329,10 @@ class BookingController extends Controller
                     $dbMethod = $methodMap[$method] ?? strtolower(str_replace(' ', '_', $method));
                     
                     // Validate payment amount is reasonable
-                    $paymentAmount = floatval($validated['payment']['amount']);
-                    if ($paymentAmount <= 0 || $paymentAmount > floatval($validated['total_cost']) * 2) {
+                    $paymentAmount = floatval(str_replace(',', '', $validated['payment']['amount']));
+                    $cleanTotalCost = floatval(str_replace(',', '', $validated['total_cost']));
+                    
+                    if ($paymentAmount <= 0 || $paymentAmount > $cleanTotalCost * 2) {
                         throw new \Exception('Payment amount must be between ₱1 and 2x the total booking cost');
                     }
 
@@ -321,18 +357,105 @@ class BookingController extends Controller
                 'payments',
             ]);
 
-            // Notify admins and staff
-            $staffToNotify = User::whereIn('role', ['admin', 'staff'])->get();
-            if ($staffToNotify->isNotEmpty()) {
-                Notification::send($staffToNotify, new RoomBookedNotification($booking));
-            }
+            // Notify all actors
+            $this->broadcastBookingNotification(
+                $booking,
+                "Your booking has been created and is pending.",
+                "New booking received for {$booking->hotel->name}.",
+                "New booking recorded in the system: {$booking->booking_reference}",
+                'new_booking'
+            );
 
             return response()->json(['success' => true, 'data' => $booking], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage() ?: 'Failed to create booking'
-            ], 422);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Specialized method for staff to handle walk-in reservations.
+     * Allows for rapid guest creation and immediate check-in.
+     */
+    public function storeWalkIn(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'guest_details' => 'required|array',
+            'guest_details.first_name' => 'required|string|max:255',
+            'guest_details.last_name' => 'required|string|max:255',
+            'guest_details.email' => 'nullable|email|max:255',
+            'guest_details.phone' => 'nullable|string|max:20',
+            'hotel_id' => 'required|integer|exists:hotels,id',
+            'checkin_date' => 'required|date',
+            'checkout_date' => 'required|date|after:checkin_date',
+            'room_id' => 'required|integer|exists:rooms,room_id',
+            'adults_count' => 'required|integer|min:1',
+            'children_count' => 'required|integer|min:0',
+            'total_cost' => 'required|numeric|min:0',
+            'payment_received' => 'required|numeric|min:0',
+            'payment_method' => 'required|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            $booking = DB::transaction(function () use ($validated) {
+                // 1. Create or find guest
+                $email = $validated['guest_details']['email'] ?? 'walkin_' . Str::random(8) . '@inntera.com';
+                $guest = Guest::firstOrCreate(
+                    ['email' => $email],
+                    [
+                        'first_name' => $validated['guest_details']['first_name'],
+                        'last_name' => $validated['guest_details']['last_name'],
+                        'phone' => $validated['guest_details']['phone'] ?? null,
+                        'password' => bcrypt(Str::random(16)),
+                        'display_id' => 'GST-' . strtoupper(Str::random(6)),
+                    ]
+                );
+
+                // 2. Create Booking
+                $booking = Booking::create([
+                    'booking_reference' => Booking::generateReference(),
+                    'guest_id' => $guest->id,
+                    'guest_name' => trim($guest->first_name . ' ' . $guest->last_name),
+                    'hotel_id' => $validated['hotel_id'],
+                    'checkin_date' => $validated['checkin_date'],
+                    'checkout_date' => $validated['checkout_date'],
+                    'total_cost' => $validated['total_cost'],
+                    'notes' => $validated['notes'] ?? 'Walk-in reservation',
+                    'booking_status' => 'checked-in', // Default to checked-in for walk-ins
+                ]);
+
+                // 3. Attach Room
+                BookingRoom::create([
+                    'booking_id' => $booking->booking_id,
+                    'room_id' => $validated['room_id'],
+                    'adults_count' => $validated['adults_count'],
+                    'children_count' => $validated['children_count'],
+                    'rate' => $validated['total_cost'] / (max(1, (strtotime($validated['checkout_date']) - strtotime($validated['checkin_date'])) / 86400)),
+                    'number_of_nights' => max(1, (strtotime($validated['checkout_date']) - strtotime($validated['checkin_date'])) / 86400),
+                ]);
+
+                // 4. Update Room Status
+                Room::where('room_id', $validated['room_id'])->update(['status' => 'occupied']);
+
+                // 5. Create Payment record if amount > 0
+                if ($validated['payment_received'] > 0) {
+                    Payment::create([
+                        'booking_id' => $booking->booking_id,
+                        'amount' => $validated['payment_received'],
+                        'payment_method' => strtolower($validated['payment_method']),
+                        'status' => 'completed',
+                        'transaction_id' => 'WALKIN-' . time(),
+                        'payment_date' => now(),
+                        'notes' => 'Initial walk-in payment',
+                    ]);
+                }
+
+                return $booking;
+            });
+
+            return response()->json(['success' => true, 'data' => $booking->load(['guest', 'bookingRooms.room'])], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
         }
     }
 
@@ -352,11 +475,46 @@ class BookingController extends Controller
         $oldStatus = $booking->booking_status;
         $booking->update($this->filterUpdateData($validated));
 
-        if ($validated['booking_status'] ?? null === 'confirmed' && $oldStatus !== 'confirmed') {
-            $booking->load(['guest', 'hotel']);
-            if ($booking->guest) {
-                $booking->guest->notify(new BookingConfirmedNotification($booking));
+        if ($oldStatus !== $booking->booking_status) {
+            $status = $booking->booking_status;
+            $messages = match ($status) {
+                'confirmed' => [
+                    "Your booking {$booking->booking_reference} has been confirmed.",
+                    "Booking {$booking->booking_reference} verified/confirmed.",
+                    "Booking confirmed and payment verified: {$booking->booking_reference}"
+                ],
+                'checked-in' => [
+                    "You have successfully checked in. Enjoy your stay!",
+                    "Guest checked in successfully: {$booking->booking_reference}",
+                    "Check-in recorded for {$booking->booking_reference}"
+                ],
+                'checked-out' => [
+                    "Thank you! Your stay is completed.",
+                    "Guest checked out: {$booking->booking_reference}",
+                    "Booking completed and closed: {$booking->booking_reference}"
+                ],
+                'cancelled' => [
+                    "Your booking {$booking->booking_reference} has been cancelled.",
+                    "Booking cancelled: {$booking->booking_reference}",
+                    "Cancellation recorded: {$booking->booking_reference}"
+                ],
+                default => [null, null, null]
+            };
+
+            if ($messages[0]) {
+                $this->broadcastBookingNotification($booking, $messages[0], $messages[1], $messages[2], "status_{$status}");
             }
+        }
+
+        // Handle Payment Submission (Reference ID added in notes)
+        if ($request->has('notes') && str_contains($validated['notes'], 'Ref:')) {
+            $this->broadcastBookingNotification(
+                $booking,
+                "Your payment reference has been submitted and is under verification.",
+                "New payment requires verification for {$booking->booking_reference}.",
+                "E-wallet payment submitted for verification: {$booking->booking_reference}",
+                'payment_submitted'
+            );
         }
 
         return response()->json([
@@ -398,11 +556,32 @@ class BookingController extends Controller
             }
         });
 
-        if ($newStatus === 'confirmed') {
-            $booking->load(['guest', 'hotel']);
-            if ($booking->guest) {
-                $booking->guest->notify(new BookingConfirmedNotification($booking));
-            }
+        $messages = match ($newStatus) {
+            'confirmed' => [
+                "Your booking {$booking->booking_reference} has been confirmed.",
+                "Booking {$booking->booking_reference} verified/confirmed.",
+                "Booking confirmed and payment verified: {$booking->booking_reference}"
+            ],
+            'checked-in' => [
+                "You have successfully checked in. Enjoy your stay!",
+                "Guest checked in successfully: {$booking->booking_reference}",
+                "Check-in recorded for {$booking->booking_reference}"
+            ],
+            'checked-out' => [
+                "Thank you! Your stay is completed.",
+                "Guest checked out: {$booking->booking_reference}",
+                "Booking completed and closed: {$booking->booking_reference}"
+            ],
+            'cancelled' => [
+                "Your booking {$booking->booking_reference} has been cancelled.",
+                "Booking cancelled: {$booking->booking_reference}",
+                "Cancellation recorded: {$booking->booking_reference}"
+            ],
+            default => [null, null, null]
+        };
+
+        if ($messages[0]) {
+            $this->broadcastBookingNotification($booking, $messages[0], $messages[1], $messages[2], "status_{$newStatus}");
         }
 
         return response()->json([

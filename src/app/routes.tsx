@@ -21,6 +21,7 @@ import { AdminBookings } from './pages/admin/AdminBookings';
 import { AdminGuests } from './pages/admin/AdminGuests';
 import { AdminStaff } from './pages/admin/AdminStaff';
 import { AdminRates } from './pages/admin/AdminRates';
+import { AdminReports } from './pages/admin/AdminReports';
 
 // Staff pages
 import { StaffDashboard } from './pages/staff/StaffDashboard';
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
           { path: 'guests', Component: AdminGuests },
           { path: 'staff', Component: AdminStaff },
           { path: 'rates', Component: AdminRates },
+          { path: 'reports', Component: AdminReports },
         ],
       },
 

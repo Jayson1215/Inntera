@@ -97,4 +97,20 @@ class NotificationController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Delete all notifications for the user.
+     */
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $user = Auth::user() ?: Auth::guard('guest')->user();
+
+        if (!$user) {
+            return response()->json(['success' => true]); // Silent fail for unauthenticated users
+        }
+
+        $user->notifications()->delete();
+
+        return response()->json(['success' => true]);
+    }
 }

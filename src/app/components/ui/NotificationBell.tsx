@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Bell, Trash2, Calendar, Tag, Info } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -9,14 +10,17 @@ import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } = useNotifications();
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleNotificationClick = async (n: any) => {
     if (!n.read_at) {
       await markAsRead(n.id);
     }
     
+    setIsOpen(false); // Close popover when clicked
+
     // Redirect logic based on notification type
     if (n.data.booking_id) {
        // Check user role to decide where to navigate
@@ -34,7 +38,7 @@ export function NotificationBell() {
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative hover:bg-slate-100 rounded-full transition-colors">
           <Bell className="w-5 h-5 text-slate-600" />
@@ -51,16 +55,28 @@ export function NotificationBell() {
             Notifications
             {unreadCount > 0 && <span className="text-xs font-medium text-slate-400">({unreadCount} unread)</span>}
           </h3>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={markAllAsRead}
-              className="text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:bg-teal-50 h-7 px-2"
-            >
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={markAllAsRead}
+                className="text-[11px] font-bold text-teal-600 hover:text-teal-700 hover:bg-teal-50 h-7 px-2"
+              >
+                Mark all read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={deleteAllNotifications}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-7 px-2"
+              >
+                Clear All
+              </Button>
+            )}
+          </div>
         </div>
 
         <ScrollArea className="h-[400px]">

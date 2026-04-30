@@ -3,384 +3,209 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { Table, TableBody, TableHeader, TableRow } from '../../components/ui/table';
-import { Plus, Edit, Trash2, Loader2, BedDouble, Filter, Search, Building2, Layers, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, BedDouble, Building2, X } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
 import { Room } from '../../types';
 import { RoomCreateSchema, RoomUpdateSchema } from '../../validations';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
 export function AdminRooms() {
-  const { rooms, hotels, roomTypes, isLoading, addRoom, updateRoom, deleteRoom } = useBooking();
+  const { rooms, hotels, roomTypes, isLoading, addRoom, updateRoom, deleteRoom, refreshData } = useBooking();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [formData, setFormData] = useState<Partial<Room>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [filterHotel, setFilterHotel] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [filterHotel, setFilterHotel] = useState('all');
+  const [filterFloor, setFilterFloor] = useState('all');
 
-  if (isLoading) {
-    return (
-      <div className="h-[70vh] flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-        <p className="text-sm font-bold text-slate-400 tracking-widest uppercase animate-pulse">Inventorying Global Availability...</p>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="h-[70vh] flex items-center justify-center"><Loader2 className="animate-spin text-emerald-500 w-12 h-12" /></div>;
 
-  const validateForm = (): boolean => {
-    try {
-      if (editingRoom) {
-        RoomUpdateSchema.parse(formData);
-      } else {
-        RoomCreateSchema.parse(formData);
-      }
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          const path = err.path.join('.');
-          newErrors[path] = err.message;
-        });
-        setErrors(newErrors);
-        toast.error('Please check required fields');
-      }
+  const validate = () => {
+    try { (editingRoom ? RoomUpdateSchema : RoomCreateSchema).parse(formData); return true; }
+    catch (err: any) {
+      const newErrors: any = {};
+      err.errors.forEach((e: any) => newErrors[e.path[0]] = e.message);
+      setValidationErrors(newErrors);
+      toast.error("Validation failed");
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-    try {
-      let result;
-      if (editingRoom) {
-        result = await updateRoom(editingRoom.room_id, formData);
-      } else {
-        result = await addRoom(formData);
-      }
-
-      if (result.success) {
-        toast.success(editingRoom ? 'Unit inventory updated' : 'New unit registered');
-        setIsDialogOpen(false);
-        setEditingRoom(null);
-        setFormData({});
-        setErrors({});
-      } else {
-        toast.error(result.error || 'Failed to save unit');
-      }
-    } catch (err) {
-      toast.error('A system error occurred');
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (!validate()) return;
+    const res = await (editingRoom ? updateRoom(editingRoom.room_id, formData) : addRoom(formData));
+    if (res.success) { toast.success("Inventory updated"); refreshData(); setIsDialogOpen(false); }
+    else toast.error(res.error || "Operation failed");
   };
 
-  const handleDelete = async (roomId: number) => {
-    if (confirm('Permanently remove this unit from inventory?')) {
-      const result = await deleteRoom(roomId);
-      if (result.success) {
-        toast.success('Unit removed from inventory');
-      } else {
-        toast.error(result.error || 'Failed to remove unit');
-      }
-    }
-  };
+  const uniqueFloors = Array.from(new Set(rooms.map(r => r.floor))).filter(Boolean).sort();
 
-  const openEditDialog = (room: Room) => {
-    setEditingRoom(room);
-    setFormData(room);
-    setErrors({});
-    setIsDialogOpen(true);
-  };
-
-  const openAddDialog = () => {
-    setEditingRoom(null);
-    setFormData({});
-    setErrors({});
-    setIsDialogOpen(true);
-  };
-
-  const filteredRooms = rooms.filter(room => {
-    if (filterHotel !== 'all' && room.hotel_id !== parseInt(filterHotel)) return false;
-    if (filterStatus !== 'all' && room.status !== filterStatus) return false;
-    
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const hotel = hotels.find(h => h.id === room.hotel_id);
-      const roomType = roomTypes.find(rt => rt.room_type_id === room.room_type_id);
-      
-      const matchesRoomNumber = room.room_number.toLowerCase().includes(searchLower);
-      const matchesHotelName = hotel?.name.toLowerCase().includes(searchLower);
-      const matchesRoomType = roomType?.name.toLowerCase().includes(searchLower);
-      
-      if (!matchesRoomNumber && !matchesHotelName && !matchesRoomType) return false;
-    }
-    
-    return true;
+  const filtered = rooms.filter(r => {
+    const matchesHotel = filterHotel === 'all' || r.hotel_id.toString() === filterHotel;
+    const matchesFloor = filterFloor === 'all' || r.floor === filterFloor;
+    return matchesHotel && matchesFloor;
   });
 
-  const getStatusStyles = (status: string) => {
-    switch (status) {
-      case 'available': return 'bg-blue-50 text-blue-700 border-blue-100';
-      case 'occupied': return 'bg-slate-100 text-slate-600 border-slate-200';
-      case 'maintenance': return 'bg-red-50 text-red-600 border-red-100';
-      case 'reserved': return 'bg-amber-50 text-amber-700 border-amber-100';
-      case 'cleaning': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-      default: return 'bg-slate-50 text-slate-400 border-slate-100';
-    }
+  const getNextRoomNumber = (hId: number, fl: string) => {
+    const flNum = parseInt(fl);
+    const suffix = (n: number) => {
+      const s = ["th", "st", "nd", "rd"];
+      const v = n % 100;
+      return s[(v - 20) % 10] || s[v] || s[0];
+    };
+    const flStr = isNaN(flNum) ? fl : `${flNum}${suffix(flNum)}`;
+    
+    const hotelRooms = rooms.filter(r => r.hotel_id === hId && (r.floor === fl || r.floor === flStr || r.floor === flNum.toString()));
+    if (hotelRooms.length === 0) return `${flNum}01`;
+    const nums = hotelRooms.map(r => parseInt(r.room_number)).filter(n => !isNaN(n));
+    if (nums.length === 0) return `${flNum}01`;
+    return (Math.max(...nums) + 1).toString();
   };
 
   return (
-    <div className="space-y-6">
-      <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeInUp 0.4s ease-out forwards; opacity: 0; }
-      `}</style>
-      
-      <div className="fade-up flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Room Inventory</h1>
-          <p className="text-sm text-slate-500 mt-1 uppercase tracking-wider font-bold">Manage units, status and property mapping</p>
+    <div className="space-y-8 p-4 md:p-8 -m-4 md:-m-8 bg-[#f8fafc] min-h-screen">
+      <div className="bg-slate-900 p-10 rounded-[2.5rem] flex flex-col md:flex-row justify-between items-center gap-8 border-b-4 border-emerald-500 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px]" />
+        <div className="relative z-10">
+          <h1 className="text-4xl font-black text-white tracking-tighter">Room Inventory</h1>
+          <p className="text-slate-900 mt-2">Manage global assets and track operational readiness.</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm px-5 py-2 font-bold transition-all active:scale-95">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Unit
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md bg-white rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-            <div className="bg-blue-600 p-6 text-white">
-               <DialogTitle className="text-xl font-bold tracking-tight">{editingRoom ? 'Update Unit Info' : 'Register New Unit'}</DialogTitle>
-               <DialogDescription className="sr-only">
-                 {editingRoom ? 'Update the inventory details for this specific room unit.' : 'Enter the details to register a new unit into the property inventory.'}
-               </DialogDescription>
-               <p className="text-blue-100 text-[10px] mt-1 font-black uppercase tracking-widest">Inventory Management System</p>
+        <Button onClick={() => { setEditingRoom(null); setFormData({ status: 'available' }); setValidationErrors({}); setIsDialogOpen(true); }} className="relative z-10 bg-emerald-500 hover:bg-emerald-400 text-white font-black px-8 h-14 rounded-2xl">
+          <Plus className="mr-2" /> ADD ROOM
+        </Button>
+      </div>
+
+      <div className="bg-white p-4 rounded-[2.5rem] shadow-xl flex justify-end items-center gap-4">
+        <Select value={filterFloor} onValueChange={setFilterFloor}>
+          <SelectTrigger className="h-14 w-48 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-900 shadow-sm">
+            <SelectValue placeholder="All Floors" />
+          </SelectTrigger>
+          <SelectContent className="z-[200] rounded-2xl bg-white border border-slate-200 shadow-2xl">
+            <SelectItem value="all">All Floors</SelectItem>
+            {uniqueFloors.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterHotel} onValueChange={setFilterHotel}>
+          <SelectTrigger className="h-14 w-48 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-900 shadow-sm">
+            <SelectValue placeholder="All Hotels" />
+          </SelectTrigger>
+          <SelectContent className="z-[200] rounded-2xl bg-white border border-slate-200 shadow-2xl">
+            <SelectItem value="all">All Hotels</SelectItem>
+            {hotels.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map(r => {
+          const hotel = hotels.find(h => h.id === r.hotel_id);
+          const type = roomTypes.find(t => t.room_type_id === r.room_type_id);
+          return (
+            <div key={r.room_id} className="rounded-[2rem] border border-slate-100 shadow-xl hover:shadow-2xl transition-all group overflow-hidden flex flex-col">
+              <div className="bg-slate-900 p-6 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-[50px] group-hover:bg-emerald-500/30 transition-all duration-500" />
+                <div className="flex justify-between items-start mb-6 relative z-10">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white shadow-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                    <BedDouble className="w-6 h-6" />
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                    r.status === 'available' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}> {r.status} </div>
+                </div>
+                <h3 className="text-2xl font-black text-white relative z-10 tracking-tight">Room {r.room_number}</h3>
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2 mt-2 relative z-10">
+                  <Building2 className="w-3 h-3" /> {hotel?.name}
+                </p>
+              </div>
+              <div className="bg-white p-6 flex justify-between items-center">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Room Type</span>
+                  <span className="text-sm font-black text-slate-900">{type?.name}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="icon" variant="ghost" onClick={() => { setEditingRoom(r); setFormData(r); setValidationErrors({}); setIsDialogOpen(true); }} className="h-10 w-10 rounded-xl bg-slate-50 text-slate-600 hover:bg-emerald-500 hover:text-white transition-colors"> <Edit className="w-4 h-4" /> </Button>
+                  <Button size="icon" variant="ghost" onClick={() => confirm("Delete room?") && deleteRoom(r.room_id)} className="h-10 w-10 rounded-xl bg-slate-50 text-slate-600 hover:bg-rose-500 hover:text-white transition-colors"> <Trash2 className="w-4 h-4" /> </Button>
+                </div>
+              </div>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          );
+        })}
+      </div>
+
+      {isDialogOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-popup">
+            <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+              <h3 className="text-2xl font-black">{editingRoom ? 'Update Room' : 'ADD ROOM'}</h3>
+              <button onClick={() => setIsDialogOpen(false)}><X /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="hotel_id" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assign Property</Label>
-                    <Select
-                      value={formData.hotel_id?.toString() || ""}
-                      onValueChange={(value) => setFormData({ ...formData, hotel_id: parseInt(value) })}
-                    >
-                      <SelectTrigger className={`bg-slate-50 text-xs font-bold ${errors.hotel_id ? 'border-red-500' : 'border-slate-200'}`}>
-                        <SelectValue placeholder="Select Property" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {hotels.map(hotel => (
-                          <SelectItem key={hotel.id} value={hotel.id.toString()}>{hotel.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.hotel_id && <p className="text-[9px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.hotel_id}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="room_type_id" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</Label>
-                    <Select
-                      value={formData.room_type_id?.toString() || ""}
-                      onValueChange={(value) => setFormData({ ...formData, room_type_id: parseInt(value) })}
-                    >
-                      <SelectTrigger className={`bg-slate-50 text-xs font-bold ${errors.room_type_id ? 'border-red-500' : 'border-slate-200'}`}>
-                        <SelectValue placeholder="Select Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roomTypes.map(type => (
-                          <SelectItem key={type.room_type_id} value={type.room_type_id.toString()}>{type.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.room_type_id && <p className="text-[9px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.room_type_id}</p>}
-                  </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="room_number" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Room No.</Label>
-                  <Input
-                    id="room_number"
-                    value={formData.room_number || ''}
-                    onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-                    required
-                    className={`bg-slate-50 text-xs font-bold ${errors.room_number ? 'border-red-500' : 'border-slate-200'}`}
-                  />
-                  {errors.room_number && <p className="text-[9px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.room_number}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="floor" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Level / Floor</Label>
-                  <Input
-                    id="floor"
-                    value={formData.floor || ''}
-                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                    required
-                    className={`bg-slate-50 text-xs font-bold ${errors.floor ? 'border-red-500' : 'border-slate-200'}`}
-                  />
-                  {errors.floor && <p className="text-[9px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.floor}</p>}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="status" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operational Status</Label>
-                  <Select
-                    value={formData.status || "available"}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as Room['status'] })}
-                  >
-                    <SelectTrigger className="bg-slate-50 border-slate-200 text-xs font-bold">
-                      <SelectValue placeholder="Set Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="available">Ready for Sales</SelectItem>
-                      <SelectItem value="cleaning">Under Housekeeping</SelectItem>
-                      <SelectItem value="occupied">Stay In Progress</SelectItem>
-                      <SelectItem value="maintenance">Out of Order</SelectItem>
-                      <SelectItem value="reserved">Blocked/Reserved</SelectItem>
-                    </SelectContent>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-900 ml-1">Hotel</Label>
+                  <Select value={formData.hotel_id?.toString()} onValueChange={v => {
+                    const hId = parseInt(v);
+                    setFormData({ ...formData, hotel_id: hId, room_type_id: undefined, room_number: formData.floor ? getNextRoomNumber(hId, formData.floor) : '' });
+                  }}>
+                    <SelectTrigger className="h-12 bg-white border border-slate-900 rounded-xl font-bold"> <SelectValue placeholder="Select" /> </SelectTrigger>
+                    <SelectContent className="z-[201] rounded-xl bg-white backdrop-blur-none shadow-2xl"> {hotels.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name}</SelectItem>)} </SelectContent>
                   </Select>
                 </div>
-              <div className="flex gap-3 justify-end pt-6">
-                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-slate-500 font-bold text-xs uppercase tracking-widest">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md px-6 py-2 font-bold transition-all active:scale-95">
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving...</span>
-                    </div>
-                  ) : editingRoom ? 'Update Unit' : 'Save Unit'}
-                </Button>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-900 ml-1">Type</Label>
+                  <Select value={formData.room_type_id?.toString()} onValueChange={v => {
+                    const typeId = parseInt(v);
+                    const type = roomTypes.find(t => t.room_type_id === typeId);
+                    let newFloor = formData.floor;
+                    
+                    if (type) {
+                      const floorMatch = type.name.match(/(\d+)(?:st|nd|rd|th)\s+Floor/i);
+                      if (floorMatch) {
+                        newFloor = floorMatch[1];
+                      }
+                    }
+
+                    setFormData({ 
+                      ...formData, 
+                      room_type_id: typeId, 
+                      floor: newFloor,
+                      room_number: (formData.hotel_id && newFloor) ? getNextRoomNumber(formData.hotel_id, newFloor) : formData.room_number 
+                    });
+                  }} disabled={!formData.hotel_id}>
+                    <SelectTrigger className="h-12 bg-white border border-slate-900 rounded-xl font-bold"> <SelectValue placeholder="Select" /> </SelectTrigger>
+                    <SelectContent className="z-[201] rounded-xl bg-white backdrop-blur-none shadow-2xl"> {roomTypes.filter(t => t.hotel_id === formData.hotel_id).map(t => <SelectItem key={t.room_type_id} value={t.room_type_id.toString()}>{t.name}</SelectItem>)} </SelectContent>
+                  </Select>
+                </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-900 ml-1">Room Number</Label>
+                  <Input value={formData.room_number || ''} onChange={e => setFormData({ ...formData, room_number: e.target.value })} className={`h-12 bg-white border border-slate-900 rounded-xl font-bold ${validationErrors.room_number ? 'ring-2 ring-rose-500' : ''}`} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-900 ml-1">Floor</Label>
+                  <Select value={formData.floor?.toString()} onValueChange={v => {
+                    setFormData({ ...formData, floor: v, room_number: formData.hotel_id ? getNextRoomNumber(formData.hotel_id, v) : '' });
+                  }}>
+                    <SelectTrigger className="h-12 bg-white border border-slate-900 rounded-xl font-bold"> <SelectValue placeholder="Select" /> </SelectTrigger>
+                    <SelectContent className="z-[201] rounded-xl bg-white backdrop-blur-none shadow-2xl"> {[1, 2, 3, 4, 5, 6].map(f => <SelectItem key={f} value={f.toString()}>Level {f}</SelectItem>)} </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-900 ml-1">Status</Label>
+                <Select value={formData.status} onValueChange={v => setFormData({ ...formData, status: v as any })}>
+                  <SelectTrigger className="h-12 bg-white border border-slate-900 rounded-xl font-bold capitalize"> <SelectValue /> </SelectTrigger>
+                  <SelectContent className="z-[201] rounded-xl bg-white backdrop-blur-none shadow-2xl"> {['available', 'cleaning', 'occupied', 'maintenance', 'reserved'].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)} </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" className="w-full h-14 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 shadow-xl">Add Room</Button>
             </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="fade-up bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4" style={{ animationDelay: '100ms' }}>
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input 
-              placeholder="Search by Room ID / Unit No..." 
-              className="pl-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-all text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
-          <Select value={filterHotel} onValueChange={setFilterHotel}>
-            <SelectTrigger className="bg-slate-50/50 border-slate-200 text-sm font-medium">
-               <div className="flex items-center gap-2">
-                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                  <SelectValue placeholder="All Hotels" />
-               </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Properties</SelectItem>
-              {hotels.map(h => (
-                <SelectItem key={h.id} value={h.id.toString()}>{h.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="bg-slate-50/50 border-slate-200 text-sm font-medium">
-               <div className="flex items-center gap-2">
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <SelectValue placeholder="Status" />
-               </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="cleaning">Cleaning</SelectItem>
-              <SelectItem value="occupied">Occupied</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="reserved">Reserved</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
-      </div>
-
-      <div className="fade-up bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '150ms' }}>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-slate-200">
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Unit Identity</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Category Details</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Location</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Unit Status</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-right">Operations</th>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-slate-100">
-              {filteredRooms.map((room) => {
-                const hotel = hotels.find(h => h.id === room.hotel_id);
-                const roomType = roomTypes.find(rt => rt.room_type_id === room.room_type_id);
-                return (
-                  <tr key={room.room_id} className="group hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                       <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                             <BedDouble className="w-5 h-5" />
-                          </div>
-                          <div className="flex flex-col">
-                             <span className="text-sm font-bold text-slate-900 tracking-tight">Room {room.room_number}</span>
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{hotel?.name}</span>
-                          </div>
-                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                       <div className="inline-flex flex-col items-center">
-                          <span className="text-xs font-bold text-slate-700">{roomType?.name}</span>
-                          <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-0.5">{roomType?.bed_type}</span>
-                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                       <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 border border-slate-100 text-slate-500">
-                          <Layers className="w-3 h-3" />
-                          <span className="text-[10px] font-bold uppercase tracking-tight">Floor {room.floor}</span>
-                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyles(room.status)}`}>
-                          <div className={`w-1 h-1 rounded-full ${room.status === 'available' ? 'bg-blue-600 animate-pulse' : 'bg-current'}`} />
-                          {room.status}
-                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(room)} className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(room.room_id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </TableBody>
-          </Table>
-          {filteredRooms.length === 0 && (
-            <div className="py-20 text-center bg-slate-50/50">
-               <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mx-auto mb-4">
-                  <BedDouble className="w-8 h-8 text-slate-100" />
-               </div>
-               <h3 className="text-sm font-bold text-slate-900">No rooms match your filter</h3>
-               <p className="text-xs text-slate-500 mt-1">Adjust your search parameters to find inventory units.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
-

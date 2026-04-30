@@ -24,20 +24,31 @@ class HotelSystemSeeder extends Seeder
     {
         // ── Users (Admin + Staff) ──────────────────────────────
         $adminUser = User::updateOrCreate(
-            ['email' => 'admin@gmail.com'],
+            ['email' => 'admin@inntera.com'],
             [
                 'name' => 'Admin User',
-                'password' => 'admin123',
+                'password' => Hash::make('admin123'),
                 'role' => 'admin',
             ]
         );
 
-        $staffUser = User::updateOrCreate(
+        $managerUser = User::updateOrCreate(
             ['email' => 'manager@gmail.com'],
             [
-                'name' => 'Manager',
-                'password' => 'manager123',
+                'name' => 'General Manager',
+                'password' => Hash::make('manager123'),
                 'role' => 'staff',
+            ]
+        );
+
+        // Ensure Staff record for GM exists
+        Staff::updateOrCreate(
+            ['user_id' => $managerUser->id],
+            [
+                'display_id' => 'STF-0000',
+                'hotel_id' => 1, // Linking to first hotel
+                'position' => 'Manager',
+                'hire_date' => now(),
             ]
         );
 
@@ -45,10 +56,20 @@ class HotelSystemSeeder extends Seeder
             ['email' => 'jayson.velasco@urios.edu.ph'],
             [
                 'name' => 'Guest',
-                'password' => '09685728496',
+                'password' => Hash::make('09685728496'),
                 'role' => 'guest',
             ]
         );
+
+        $staffUser = User::updateOrCreate(
+            ['email' => 'staff@gmail.com'],
+            [
+                'name' => 'Operations Staff',
+                'password' => Hash::make('staff123'),
+                'role' => 'staff',
+            ]
+        );
+
 
         // ── Hotels (Butuan City Philippines) ──────────────────
         $hotelsData = [
@@ -140,6 +161,7 @@ class HotelSystemSeeder extends Seeder
                         'base_price' => 1200,
                         'max_occupancy' => 1,
                         'bed_type' => 'Single',
+                        'image_url' => 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop',
                     ]
                 ),
                 'standard_double' => RoomType::updateOrCreate(
@@ -149,6 +171,7 @@ class HotelSystemSeeder extends Seeder
                         'base_price' => 2500,
                         'max_occupancy' => 2,
                         'bed_type' => 'Double',
+                        'image_url' => 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=1000&auto=format&fit=crop',
                     ]
                 ),
                 'deluxe_double' => RoomType::updateOrCreate(
@@ -158,6 +181,7 @@ class HotelSystemSeeder extends Seeder
                         'base_price' => 4500,
                         'max_occupancy' => 3,
                         'bed_type' => 'Double',
+                        'image_url' => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=1000&auto=format&fit=crop',
                     ]
                 ),
                 'executive_suite' => RoomType::updateOrCreate(
@@ -167,6 +191,7 @@ class HotelSystemSeeder extends Seeder
                         'base_price' => 12000,
                         'max_occupancy' => 4,
                         'bed_type' => 'Double',
+                        'image_url' => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?q=80&w=1000&auto=format&fit=crop',
                     ]
                 ),
             ];
@@ -183,9 +208,9 @@ class HotelSystemSeeder extends Seeder
                 ['role' => 'housekeeping', 'count' => 2],
                 ['role' => 'receptionist', 'count' => 2],
             ];
-            
+
             static $globalStaffCounter = 1;
-            
+
             foreach ($staffConfigs as $config) {
                 for ($i = 1; $i <= $config['count']; $i++) {
                     $email = "{$config['role']}.hotel" . ($index + 1) . ".{$i}@inntera.com";
@@ -274,7 +299,7 @@ class HotelSystemSeeder extends Seeder
             if ($room) {
                 $checkin = now()->addDays($idx + 1)->format('Y-m-d');
                 $checkout = now()->addDays($idx + 3)->format('Y-m-d');
-                
+
                 $booking = Booking::updateOrCreate(
                     ['booking_reference' => 'BK-BTU-' . str_pad($idx + 1, 3, '0', STR_PAD_LEFT)],
                     [

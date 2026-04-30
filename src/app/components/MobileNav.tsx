@@ -32,10 +32,10 @@ export function MobileNav() {
               key={item.path}
               to={item.path}
               className={`flex flex-col items-center gap-1 transition-all active:scale-90 ${
-                isActive ? 'text-amber-600' : 'text-stone-400'
+                isActive ? 'text-emerald-600' : 'text-stone-400'
               }`}
             >
-              <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-amber-50' : ''}`}>
+              <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-emerald-50' : ''}`}>
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>

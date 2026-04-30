@@ -1,175 +1,136 @@
-import { Building2, BedDouble, Calendar, Users, DollarSign, TrendingUp, ArrowRight, ArrowUpRight, Activity } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, BedDouble, Calendar, Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Loader2, X, MapPin, Eye } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
-import { Hotel, Room, Booking, Guest } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
+import { Dialog, DialogContent } from '../../components/ui/dialog';
 
 export function AdminDashboard() {
   const { hotels, rooms, bookings, guests, isLoading } = useBooking();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  if (isLoading) {
-    return (
-      <div className="h-[70vh] flex flex-col items-center justify-center">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Activity className="w-8 h-8 text-blue-600 animate-pulse" />
-          </div>
-        </div>
-        <p className="mt-6 text-sm font-black text-slate-400 tracking-widest uppercase animate-pulse">Initializing Data...</p>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="h-[70vh] flex items-center justify-center"><Loader2 className="animate-spin text-indigo-500 w-12 h-12" /></div>;
 
-  const totalHotels = hotels.length;
-  const totalRooms = rooms.length;
-  const availableRooms = rooms.filter((r: Room) => r.status === 'available').length;
-  const totalBookings = bookings.length;
-  const activeBookings = bookings.filter((b: Booking) => 
-    b.booking_status === 'confirmed' || b.booking_status === 'checked-in'
-  ).length;
-  const totalGuests = guests.length;
-  const totalRevenue = bookings.reduce((sum: number, b: Booking) => sum + (parseFloat(String(b.total_cost || 0))), 0);
-  const occupancyRate = totalRooms > 0 ? Math.round((totalRooms - availableRooms) / totalRooms * 100) : 0;
-
+  const totalRev = bookings.reduce((s, b) => s + (parseFloat(String(b.total_cost || 0))), 0);
+  const avail = rooms.filter(r => r.status === 'available').length;
+  const occ = rooms.length > 0 ? Math.round((rooms.length - avail) / rooms.length * 100) : 0;
+  
   const stats = [
-    { title: 'Properties', value: totalHotels, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Inventory', value: totalRooms, subtitle: `${availableRooms} Available`, icon: BedDouble, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Active Stays', value: activeBookings, subtitle: `${totalBookings} Total`, icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50' },
-    { title: 'Registered Guests', value: totalGuests, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { title: 'Gross Revenue', value: `₱${totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Occupancy Rate', value: `${occupancyRate}%`, icon: TrendingUp, color: 'text-slate-600', bg: 'bg-slate-50' },
+    { t: 'Assets', v: hotels.length, i: Building2, c: 'text-indigo-600', b: 'bg-indigo-50' },
+    { t: 'Inventory', v: rooms.length, s: `${avail} Avail`, i: BedDouble, c: 'text-emerald-600', b: 'bg-emerald-50' },
+    { t: 'Active', v: bookings.filter(b => b.booking_status === 'confirmed' || b.booking_status === 'checked-in').length, s: `${bookings.length} Total`, i: Calendar, c: 'text-amber-600', b: 'bg-amber-50' },
+    { t: 'Registry', v: guests.length, i: Users, c: 'text-blue-600', b: 'bg-blue-50' },
+    { t: 'Revenue', v: `₱${totalRev.toLocaleString()}`, i: DollarSign, c: 'text-emerald-600', b: 'bg-emerald-50' },
+    { t: 'Occupancy', v: `${occ}%`, i: TrendingUp, c: 'text-slate-900', b: 'bg-slate-50' },
   ];
 
-  const recentBookings = [...bookings]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 6);
-
-  const getStatusStyles = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-      case 'checked-in': return 'bg-blue-50 text-blue-700 border-blue-100';
-      case 'pending': return 'bg-orange-50 text-orange-700 border-orange-100';
-      case 'cancelled': return 'bg-red-50 text-red-700 border-red-100';
-      default: return 'bg-slate-50 text-slate-700 border-slate-200';
-    }
-  };
+  const selectedBooking = bookings.find(b => b.booking_id === selectedId);
+  const selectedGuest = guests.find(g => g.id === selectedBooking?.guest_id);
+  const selectedHotel = hotels.find(h => h.id === selectedBooking?.hotel_id);
 
   return (
-    <div className="space-y-8">
-      <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeInUp 0.4s ease-out forwards; opacity: 0; }
-      `}</style>
+    <div className="space-y-8 p-4 md:p-8 -m-4 md:-m-8 bg-[#f8fafc] min-h-screen">
 
-      {/* Header */}
-      <div className="fade-up flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Partner Hub Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1 uppercase tracking-wider font-bold">Real-time property performance and metrics</p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100">
-           <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-           <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Live Sync Actionable</span>
-        </div>
-      </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={index}
-              className="fade-up group bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-all duration-300"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold text-slate-900 tracking-tight">{stat.value}</p>
-                  {stat.subtitle && (
-                    <p className="text-[11px] font-bold text-slate-500 mt-2 flex items-center gap-1">
-                       <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                       {stat.subtitle}
-                    </p>
-                  )}
-                </div>
-                <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm border border-black/5`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-              </div>
+        {stats.map((s, i) => (
+          <div key={i} className="bg-white p-6 rounded-[2rem] shadow-sm hover:-translate-y-1 transition-all relative overflow-hidden group border border-slate-100">
+            <div className="flex justify-between">
+              <div> <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.t}</p> <p className="text-3xl font-black text-slate-900 tracking-tight">{s.v}</p> {s.s && <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-1">{s.s}</p>} </div>
+              <div className={`w-14 h-14 rounded-2xl ${s.b} ${s.c} flex items-center justify-center shadow-sm group-hover:scale-110 transition-all`}> <s.i className="w-7 h-7" /> </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* Recent Bookings */}
-      <div className="fade-up bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '400ms' }}>
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-             <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                <Calendar className="w-4 h-4 text-blue-600" />
-             </div>
-             <div>
-                <h2 className="text-sm font-bold text-slate-900 tracking-tight">Recent Reservations</h2>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{bookings.length} system bookings</p>
-             </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white rounded-[2rem] shadow-sm p-8 border border-slate-100">
+          <div className="flex justify-between items-center mb-8">
+            <div> <h2 className="text-2xl font-black text-slate-900">Transaction Feed</h2> <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Real-time updates</p> </div>
+            <Link to="/admin/bookings"> <Button variant="ghost" className="rounded-xl bg-slate-50 font-black text-[10px] uppercase tracking-widest px-6 h-12 hover:bg-slate-900 hover:text-white transition-all">View All</Button> </Link>
           </div>
-          <Link to="/admin/bookings">
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold text-[11px] uppercase tracking-widest">
-              View All <ArrowRight className="w-3 h-3 ml-1.5" />
-            </Button>
-          </Link>
+          <div className="space-y-4">
+            {[...bookings].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5).map(b => {
+              const guest = guests.find(g => g.id === b.guest_id);
+              return (
+                <div key={b.booking_id} onClick={() => setSelectedId(b.booking_id)} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-slate-100 cursor-pointer group">
+                  <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-xs">{b.booking_reference.slice(0, 2)}</div>
+                    <div> 
+                      <p className="text-sm font-black text-slate-900">{guest ? `${guest.first_name} ${guest.last_name}` : b.booking_reference}</p> 
+                      <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mt-1">₱{Number(b.total_cost).toLocaleString()} • {b.booking_reference}</p> 
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${b.booking_status === 'confirmed' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}> {b.booking_status.replace('_', ' ')} </div>
+                    <Eye className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="divide-y divide-slate-100">
-          {recentBookings.map((booking, index) => {
-            const hotel = hotels.find((h: Hotel) => h.id === booking.hotel_id);
-            const guest = guests.find((g: Guest) => g.id === booking.guest_id);
-            return (
-              <div
-                key={booking.booking_id}
-                className="fade-up flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition-colors group"
-                style={{ animationDelay: `${500 + index * 50}ms` }}
-              >
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-sm">
-                    {guest?.first_name?.charAt(0)}{guest?.last_name?.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{guest?.first_name} {guest?.last_name}</p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                       {booking.booking_reference} <span className="mx-1.5 text-slate-200">|</span> <span className="text-blue-600">{hotel?.name}</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-8 flex-shrink-0 ml-4">
-                  <div className="text-right hidden md:block">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Check-in</p>
-                    <p className="text-xs font-bold text-slate-700">
-                      {new Date(booking.checkin_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </div>
-                  <div className="text-right hidden md:block">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Settlement</p>
-                    <p className="text-xs font-black text-slate-950">₱{Number(booking.total_cost || 0).toLocaleString()}</p>
-                  </div>
-                  <div className={`px-2.5 py-1 rounded border text-[10px] font-black uppercase tracking-tighter ${getStatusStyles(booking.booking_status)}`}>
-                    {booking.booking_status.replace('-', ' ')}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {recentBookings.length === 0 && (
-            <div className="px-6 py-16 text-center">
-              <Calendar className="w-12 h-12 text-slate-100 mx-auto mb-4" />
-              <h3 className="text-sm font-bold text-slate-900">No recent activity</h3>
-              <p className="text-xs text-slate-500 mt-1">Activity logs will appear here once bookings are created.</p>
+
+        <div className="space-y-8">
+          <div className="bg-slate-900 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-[60px]" />
+            <h2 className="text-xl font-black text-white mb-6">Quick Ops</h2>
+            <div className="space-y-3">
+              {[ { l: 'Assets', p: '/admin/hotels', i: Building2 }, { l: 'Personnel', p: '/admin/staff', i: Users }, { l: 'Inventory', p: '/admin/rooms', i: BedDouble } ].map((l, i) => (
+                <Link key={i} to={l.p} className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all group">
+                  <div className="flex items-center gap-3"> <l.i className="w-5 h-5 text-indigo-400" /> <span className="text-[10px] font-black text-white uppercase tracking-widest">{l.l}</span> </div>
+                  <ArrowUpRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                </Link>
+              ))}
             </div>
-          )}
+          </div>
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-3 mb-6"> <Activity className="w-5 h-5 text-indigo-500" /> <h2 className="text-lg font-black text-slate-900">System Health</h2> </div>
+            <div className="space-y-4">
+               <div> <div className="flex justify-between text-[9px] font-black uppercase mb-1"> <span className="text-slate-900">Database</span> <span className="text-emerald-500">Online</span> </div> <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 w-full" /></div> </div>
+               <div> <div className="flex justify-between text-[9px] font-black uppercase mb-1"> <span className="text-slate-900">Occupancy</span> <span className="text-indigo-500">{occ}%</span> </div> <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-500" style={{ width: `${occ}%` }} /></div> </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <Dialog open={!!selectedId} onOpenChange={o => !o && setSelectedId(null)}>
+        <DialogContent className="max-w-2xl bg-white rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+            <h3 className="text-3xl font-black">Transaction Detail</h3>
+            <button onClick={() => setSelectedId(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X className="w-6 h-6" /></button>
+          </div>
+          <div className="p-8 space-y-8">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest">Guest Profile</p>
+...
+                <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest">Revenue Status</p>
+                <div className="inline-flex px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100 mt-2">
+                  ₱{Number(selectedBooking?.total_cost).toLocaleString()} • {selectedBooking?.booking_status.replace('_', ' ')}
+                </div>
+              </div>
+            </div>
+            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center gap-6">
+              <div className="w-20 h-20 rounded-2xl bg-white shadow-lg overflow-hidden border-4 border-white flex-shrink-0">
+                <img src={selectedHotel?.image_url} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <p className="text-xl font-black text-slate-900">{selectedHotel?.name}</p>
+                <p className="text-[10px] font-bold text-slate-900 flex items-center gap-1.5 mt-1 uppercase tracking-widest">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500" /> {selectedHotel?.address}
+                </p>
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-2">
+                  Stay: {selectedBooking && new Date(selectedBooking.checkin_date).toLocaleDateString()} — {selectedBooking && new Date(selectedBooking.checkout_date).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <div className="pt-4 flex justify-end">
+              <Link to="/admin/bookings" className="text-[10px] font-black text-slate-900 hover:text-slate-900 uppercase tracking-[0.2em] transition-colors">Go to full Ledger →</Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

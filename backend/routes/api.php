@@ -34,6 +34,7 @@ Route::get('/system/init', [SystemController::class, 'init']);
 Route::get('/notifications', [NotificationController::class, 'index']);
 Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+Route::delete('/notifications/clear-all', [NotificationController::class, 'destroyAll']);
 Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
 // Auth
@@ -44,18 +45,20 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallbac
 
 // Dashboard
 Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+Route::get('/dashboard/analytics', [DashboardController::class, 'analytics']);
 
 // Hotels
 Route::apiResource('hotels', HotelController::class);
 
 // Rooms
-Route::apiResource('rooms', RoomController::class)->except(['destroy']);
+Route::apiResource('rooms', RoomController::class);
 Route::patch('/rooms/{room}/status', [RoomController::class, 'updateStatus']);
 
 // Room Types
 Route::apiResource('room-types', RoomTypeController::class)->except(['destroy']);
 
 // Bookings
+Route::post('/bookings/walk-in', [BookingController::class, 'storeWalkIn']);
 Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
 
@@ -70,6 +73,7 @@ Route::get('/amenities', [AmenityController::class, 'index']);
 
 // Staff
 Route::get('/staff', [StaffController::class, 'index']);
+Route::post('/staff', [StaffController::class, 'store']);
 
 // Payments
 Route::get('/payments', [PaymentController::class, 'index']);

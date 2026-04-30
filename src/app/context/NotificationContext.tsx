@@ -10,6 +10,7 @@ interface NotificationContextType {
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -79,6 +80,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const deleteAllNotifications = useCallback(async () => {
+    try {
+      const res = await notificationService.deleteAll();
+      if (res.success) {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (user?.id) {
       fetchNotifications();
@@ -99,6 +112,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       markAsRead,
       markAllAsRead,
       deleteNotification,
+      deleteAllNotifications,
       isLoading
     }}>
       {children}

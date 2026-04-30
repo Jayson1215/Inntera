@@ -2,310 +2,69 @@ import { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Dialog, DialogContent } from '../../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Plus, Edit, Trash2, MapPin, Phone, AlertCircle, Loader2, Building2, ImageIcon, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Loader2, Building2, X, Check, Search } from 'lucide-react';
 import { Hotel } from '../../types';
 import { useBooking } from '../../context/BookingContext';
 import { HotelCreateSchema, HotelUpdateSchema } from '../../validations';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
 export function AdminHotels() {
   const { hotels, isLoading, addHotel, updateHotel, deleteHotel } = useBooking();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [formData, setFormData] = useState<Partial<Hotel>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  if (isLoading) {
-    return (
-      <div className="h-[70vh] flex flex-col items-center justify-center text-[#0066FF]">
-        <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <p className="font-bold animate-pulse uppercase tracking-widest text-xs">Accessing Global Property Network...</p>
-      </div>
-    );
-  }
-
-  const validateForm = (): boolean => {
-    try {
-      if (editingHotel) {
-        HotelUpdateSchema.parse(formData);
-      } else {
-        HotelCreateSchema.parse(formData);
-      }
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          const path = err.path.join('.');
-          newErrors[path] = err.message;
-        });
-        setErrors(newErrors);
-        console.error('Validation failed:', newErrors);
-        toast.error('Please check the required fields');
-      }
-      return false;
-    }
-  };
+  if (isLoading) return <div className="h-[70vh] flex flex-col items-center justify-center text-slate-400 font-medium"> <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mb-4" /> Synchronizing Portfolio...</div>;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
     try {
-      let result;
-      if (editingHotel) {
-        result = await updateHotel(editingHotel.id, formData);
-      } else {
-        result = await addHotel(formData);
-      }
-
-      if (result.success) {
-        toast.success(editingHotel ? 'Property record updated' : 'New property registered');
-        setIsDialogOpen(false);
-        setEditingHotel(null);
-        setFormData({});
-      } else {
-        toast.error(result.error || 'Operation failed');
-      }
-    } catch (err) {
-      toast.error('A system error occurred');
-    } finally {
-      setIsSubmitting(false);
-    }
+      (editingHotel ? HotelUpdateSchema : HotelCreateSchema).parse(formData);
+      setIsSubmitting(true);
+      const res = editingHotel ? await updateHotel(editingHotel.id, formData) : await addHotel(formData);
+      if (res.success) { toast.success('Portfolio updated'); setIsDialogOpen(false); setEditingHotel(null); setFormData({}); } else toast.error(res.error || 'Update failed');
+    } catch (err: any) { toast.error(err.errors?.[0]?.message || 'Validation failed'); } finally { setIsSubmitting(false); }
   };
 
-  const handleDelete = async (hotelId: number) => {
-    if (confirm('Are you sure you want to PERMANENTLY REMOVE this property from the global network?')) {
-      const result = await deleteHotel(hotelId);
-      if (result.success) {
-        toast.success('Property removed successfully');
-      } else {
-        toast.error(result.error || 'Failed to remove property');
-      }
-    }
-  };
-
-  const openEditDialog = (hotel: Hotel) => {
-    setEditingHotel(hotel);
-    setFormData(hotel);
-    setErrors({});
-    setIsDialogOpen(true);
-  };
-
-  const openAddDialog = () => {
-    setEditingHotel(null);
-    setFormData({});
-    setErrors({});
-    setIsDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    setEditingHotel(null);
-    setFormData({});
-    setErrors({});
-  };
+  const filtered = hotels.filter(h => h.name.toLowerCase().includes(searchTerm.toLowerCase()) || h.city.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Hotel Management</h1>
-          <p className="text-sm text-slate-500">Manage your property list and contact details</p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog} className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm px-4 py-2 font-semibold transition-all active:scale-95 text-sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Hotel
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md bg-white rounded-xl shadow-2xl p-6">
-            <DialogTitle className="text-xl font-bold mb-4">{editingHotel ? 'Edit Hotel' : 'Add New Hotel'}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {editingHotel ? 'Update the details for this property record.' : 'Enter the details for a new property to register in the global network.'}
-            </DialogDescription>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-sm font-semibold text-slate-700">Hotel Name</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="name"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Enter hotel name"
-                    className={`pl-10 h-10 rounded-lg ${errors.name ? 'border-red-500 ring-red-50' : 'border-slate-200'}`}
-                  />
-                </div>
-                {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.name}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="city" className="text-sm font-semibold text-slate-700">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city || ''}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="City"
-                    className={`h-10 rounded-lg ${errors.city ? 'border-red-500' : 'border-slate-200'}`}
-                  />
-                  {errors.city && <p className="text-[10px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.city}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone" className="text-sm font-semibold text-slate-700">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Phone number"
-                    className={`h-10 rounded-lg ${errors.phone ? 'border-red-500' : 'border-slate-200'}`}
-                  />
-                  {errors.phone && <p className="text-[10px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.phone}</p>}
-                </div>
-              </div>
-
-
-
-              <div className="space-y-1.5">
-                <Label htmlFor="address" className="text-sm font-semibold text-slate-700">Full Address</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="address"
-                    value={formData.address || ''}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Street address"
-                    className={`pl-10 h-10 rounded-lg ${errors.address ? 'border-red-500' : 'border-slate-200'}`}
-                  />
-                </div>
-                {errors.address && <p className="text-[10px] text-red-500 font-bold mt-1 uppercase tracking-tight">{errors.address}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="image_url" className="text-sm font-semibold text-slate-700">Property Image URL</Label>
-                <div className="flex gap-4 items-start">
-                  <div className="flex-1 space-y-1.5">
-                    <div className="relative">
-                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <Input
-                        id="image_url"
-                        value={formData.image_url || ''}
-                        onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                        placeholder="https://images.unsplash.com/..."
-                        className="pl-10 h-10 rounded-lg border-slate-200"
-                      />
-                    </div>
-                    <p className="text-[9px] text-slate-400 italic">Paste a direct link to a hotel photo (JPEG, PNG, etc.)</p>
-                  </div>
-                  <div className="w-20 h-20 rounded-lg bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center flex-shrink-0">
-                    {formData.image_url ? (
-                      <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-8 h-8 text-slate-200" />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-sm font-semibold text-slate-700">Property Description</Label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <textarea
-                    id="description"
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the unique features of this property..."
-                    className="w-full min-h-[80px] pl-10 pr-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
-                <Button type="button" variant="ghost" onClick={closeDialog} disabled={isSubmitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white px-6">
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingHotel ? 'Save Changes' : 'Add Hotel'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 -m-4 md:-m-8 space-y-8">
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-10 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-8 border-b-4 border-emerald-500">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px]" />
+        <div className="relative z-10"><h1 className="text-4xl font-black text-white tracking-tighter mb-2">Property Portfolio</h1><p className="text-slate-400 max-w-xl">Manage global assets and maintain operational standards across your network.</p></div>
+        <Button onClick={() => { setEditingHotel(null); setFormData({}); setIsDialogOpen(true); }} className="relative z-10 bg-emerald-500 hover:bg-emerald-400 text-white font-black px-8 h-14 rounded-2xl shadow-xl shadow-emerald-500/20"><Plus className="mr-2" /> Integrate Property</Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
-              <TableHead className="w-20 px-6 py-3 font-semibold text-slate-700">Photo</TableHead>
-              <TableHead className="px-6 py-3 font-semibold text-slate-700">Hotel Name</TableHead>
-              <TableHead className="px-6 py-3 font-semibold text-slate-700">Location</TableHead>
-              <TableHead className="px-6 py-3 font-semibold text-slate-700">Phone</TableHead>
-
-              <TableHead className="px-6 py-3 font-semibold text-slate-700 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {hotels.map((hotel) => (
-              <TableRow key={hotel.id} className="hover:bg-slate-50 transition-colors">
-                <TableCell className="px-6 py-4">
-                  <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                    {hotel.image_url ? (
-                      <img src={hotel.image_url} alt={hotel.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-6 h-6 text-slate-300" />
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-slate-900">{hotel.name}</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1 rounded border border-slate-100">{hotel.display_id || 'HTL-GEN-000'}</span>
-                      {hotel.star_rating && (
-                        <div className="flex gap-0.5 ml-1">
-                          {[...Array(hotel.star_rating)].map((_, i) => (
-                            <div key={i} className="w-2 h-2 rounded-full bg-amber-400" />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4 text-slate-600">{hotel.city}</TableCell>
-                <TableCell className="px-6 py-4 text-slate-600">{hotel.phone}</TableCell>
-
-                <TableCell className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(hotel)} className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(hotel.id)} className="h-8 w-8 p-0 text-slate-400 hover:text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {hotels.length === 0 && (
-          <div className="py-20 text-center">
-            <Building2 className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-slate-900">No hotels found</h3>
-            <p className="text-sm text-slate-500">Start by adding your first property</p>
-          </div>
-        )}
+      <div className="bg-white p-4 rounded-[2.5rem] shadow-xl flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1"><Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" /><input placeholder="Search properties..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 h-14 bg-slate-50 border-none rounded-2xl font-bold outline-none" /></div>
+        <div className="px-6 h-14 rounded-2xl bg-slate-50 flex items-center gap-3 border border-slate-100"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assets: {hotels.length}</span></div>
       </div>
+
+      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
+        <Table><TableHeader><TableRow className="bg-slate-900 border-none"><TableHead className="px-10 py-6 text-[10px] font-black text-white uppercase tracking-widest">Asset</TableHead><TableHead className="px-10 py-6 text-[10px] font-black text-white uppercase tracking-widest">Property Name</TableHead><TableHead className="px-10 py-6 text-[10px] font-black text-white uppercase tracking-widest">Location</TableHead><TableHead className="px-10 py-6 text-[10px] font-black text-white uppercase tracking-widest text-right">Actions</TableHead></TableRow></TableHeader>
+          <TableBody>{filtered.map(h => (
+            <TableRow key={h.id} className="group hover:bg-slate-50 transition-all"><TableCell className="px-10 py-6"><div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden shadow-lg transition-transform group-hover:scale-110">{h.image_url ? <img src={h.image_url} className="w-full h-full object-cover" /> : <Building2 className="w-full h-full p-4 text-slate-200" />}</div></TableCell>
+              <TableCell className="px-10 py-6"><div className="font-black text-xl text-slate-900">{h.name}</div><div className="text-[10px] font-black text-emerald-500 uppercase mt-1">ID: {h.id}</div></TableCell><TableCell className="px-10 py-6 font-bold text-slate-600">{h.city}</TableCell>
+              <TableCell className="px-10 py-6 text-right"><div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => { setEditingHotel(h); setFormData(h); setIsDialogOpen(true); }} className="h-12 w-12 rounded-xl bg-slate-900 text-white hover:bg-slate-800"><Edit className="w-4 h-4" /></Button><Button variant="ghost" onClick={async () => confirm('Decommission property?') && await deleteHotel(h.id)} className="h-12 w-12 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white"><Trash2 className="w-4 h-4" /></Button></div></TableCell></TableRow>))}
+          </TableBody></Table>
+        {filtered.length === 0 && <div className="py-24 text-center text-slate-400"><Building2 className="mx-auto w-12 h-12 mb-4 opacity-20" /><h3 className="text-xl font-black text-slate-900">No properties found</h3></div>}
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}><DialogContent className="max-w-xl bg-white rounded-[3rem] p-0 overflow-hidden shadow-2xl border-none">
+        <div className="bg-slate-900 p-8 flex justify-between items-center text-white"><h3 className="text-2xl font-black">{editingHotel ? 'Edit Property' : 'Integrate Property'}</h3><button onClick={() => setIsDialogOpen(false)}><X /></button></div>
+        <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto max-h-[70vh]">
+          <div className="space-y-1.5"><Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property Name</Label><Input value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} className="h-12 bg-slate-50 border-none rounded-xl font-bold" /></div>
+          <div className="grid grid-cols-2 gap-4"><div className="space-y-1.5"><Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">City</Label><Input value={formData.city || ''} onChange={e => setFormData({ ...formData, city: e.target.value })} className="h-12 bg-slate-50 border-none rounded-xl font-bold" /></div><div className="space-y-1.5"><Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</Label><Input value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="h-12 bg-slate-50 border-none rounded-xl font-bold" /></div></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Address</Label><Input value={formData.address || ''} onChange={e => setFormData({ ...formData, address: e.target.value })} className="h-12 bg-slate-50 border-none rounded-xl font-bold" /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Image URL</Label><Input value={formData.image_url || ''} onChange={e => setFormData({ ...formData, image_url: e.target.value })} className="h-12 bg-slate-50 border-none rounded-xl font-bold" /></div>
+          <div className="space-y-1.5"><Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Description</Label><textarea value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full h-32 bg-slate-50 rounded-2xl p-4 text-sm font-bold outline-none" /></div>
+          <div className="flex gap-4 justify-end pt-4"><Button type="button" onClick={() => setIsDialogOpen(false)} className="h-12 bg-slate-100 text-slate-500 font-bold rounded-xl px-6">Cancel</Button><Button type="submit" disabled={isSubmitting} className="h-12 bg-slate-900 text-white font-bold rounded-xl px-10 shadow-lg">{isSubmitting ? <Loader2 className="animate-spin" /> : <Check className="mr-2 w-4 h-4" />} Confirm</Button></div>
+        </form></DialogContent></Dialog>
     </div>
   );
 }

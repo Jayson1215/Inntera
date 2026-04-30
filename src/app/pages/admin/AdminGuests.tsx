@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Loader2, Search, Filter, Mail, Phone, Trash2, UserX, UserCheck, Shield, UserPlus, Star, Edit2, Check } from 'lucide-react';
+import { Loader2, Search, Trash2, Edit2, Check, Unlock, Lock, X, UserPlus, Users, Mail } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
-import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Dialog, DialogContent } from '../../components/ui/dialog';
 import { adminService } from '../../lib/api';
 import { toast } from 'sonner';
 
@@ -13,339 +12,154 @@ export function AdminGuests() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
-  const [editingGuestId, setEditingGuestId] = useState<number | null>(null);
-  const [editFormData, setEditFormData] = useState<any>(null);
+  const [editingGuest, setEditingGuest] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleBan = async (id: number, currentStatus: string) => {
-    const action = currentStatus === 'banned' ? 'UNBAN' : 'BAN';
-    if (!window.confirm(`Are you sure you want to ${action} this guest? ${action === 'BAN' ? 'All future bookings will be cancelled.' : ''}`)) return;
-    
+  if (isLoading) return <div className="h-[70vh] flex flex-col items-center justify-center text-slate-900 font-medium"> <Loader2 className="animate-spin text-indigo-500 w-10 h-10 mb-4" /> Syncing Guest Data...</div>;
+
+  const handleAction = async (id: number, api: any, msg: string) => {
     setIsProcessing(id);
-    try {
-      const res = await adminService.banGuest(id);
-      if (res.success) {
-        toast.success(res.message || 'Guest status updated');
-        await refreshData();
-      } else {
-        toast.error(res.error || 'Failed to update status');
-      }
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setIsProcessing(null);
-    }
+    const res = await api(id);
+    if (res.success) { toast.success(msg); refreshData(); } else toast.error(res.error || 'Failed');
+    setIsProcessing(null);
   };
 
-  const handleRemove = async (id: number) => {
-    if (!window.confirm('Are you sure you want to REMOVE this guest record? This cannot be undone.')) return;
-    
-    setIsProcessing(id);
-    try {
-      const res = await adminService.removeGuest(id);
-      if (res.success) {
-        toast.success('Guest record removed successfully');
-        await refreshData();
-      } else {
-        toast.error(res.error || 'Failed to remove guest');
-      }
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const handleEditClick = (guest: any) => {
-    setEditingGuestId(guest.id);
-    setEditFormData({
-      first_name: guest.first_name,
-      last_name: guest.last_name,
-      email: guest.email,
-      phone: guest.phone,
-    });
-  };
-
-  const handleCloseEdit = () => {
-    setEditingGuestId(null);
-    setEditFormData(null);
-  };
-
-  const handleSaveGuest = async () => {
-    if (!editFormData || !editingGuestId) return;
-
-    setIsSubmitting(true);
-    try {
-      const result = await adminService.updateGuest(editingGuestId, editFormData);
-      if (result.success) {
-        toast.success('Guest profile updated successfully');
-        await refreshData();
-        handleCloseEdit();
-      } else {
-        toast.error(result.error || 'Failed to update guest');
-      }
-    } catch (error) {
-      toast.error('Error updating guest');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="h-[70vh] flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-        <p className="text-sm font-bold text-slate-400 tracking-widest uppercase animate-pulse">Synchronizing Guest Data...</p>
-      </div>
-    );
-  }
-
-  const filteredGuests = guests.filter(guest => {
-    const fullName = `${guest.first_name} ${guest.last_name}`.toLowerCase();
-    const email = (guest.email || '').toLowerCase();
-    const displayId = (guest.display_id || '').toLowerCase();
-    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
-                          email.includes(searchTerm.toLowerCase()) ||
-                          displayId.includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || guest.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = guests.filter(g => 
+    (!searchTerm || `${g.first_name} ${g.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || g.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (statusFilter === 'all' || (statusFilter === 'active' && g.status !== 'banned') || (statusFilter === 'banned' && g.status === 'banned'))
+  );
 
   return (
-    <div className="space-y-6">
-      <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeInUp 0.4s ease-out forwards; opacity: 0; }
-      `}</style>
-
-      <div className="fade-up flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="space-y-8 p-4 md:p-8 -m-4 md:-m-8 bg-slate-50 min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Guest Relations</h1>
-          <p className="text-sm text-slate-500 mt-1 uppercase tracking-wider font-bold">Manage guest profiles, loyalty and access</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm px-5 py-2 font-bold transition-all active:scale-95">
-             <UserPlus className="w-4 h-4 mr-2" />
-             Register New Guest
-          </Button>
-        </div>
-      </div>
-
-      <div className="fade-up bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4" style={{ animationDelay: '100ms' }}>
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="relative md:col-span-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input 
-              placeholder="Search by name, email, or guest loyalty ID..." 
-              className="pl-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-all text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex items-center gap-3 mb-2">
+            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest">Directory</span>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="bg-slate-50/50 border-slate-200 text-sm font-medium">
-              <div className="flex items-center gap-2">
-                <Filter className="w-3.5 h-3.5 text-slate-400" />
-                <SelectValue placeholder="All Status" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active Members</SelectItem>
-              <SelectItem value="banned">Banned Accounts</SelectItem>
-            </SelectContent>
-          </Select>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Guest Management</h1>
+          <p className="text-sm font-bold text-slate-500 mt-1">{guests.length} total profiles registered</p>
         </div>
       </div>
 
-      <div className="fade-up bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm" style={{ animationDelay: '150ms' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-medium">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200">
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Guest Member</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Loyalty ID</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Contact Details</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-right">Operations</th>
+      <div className="bg-white rounded-[2rem] border border-slate-100 p-4 flex flex-col md:flex-row gap-4 shadow-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <input placeholder="Search by name or email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 h-14 bg-slate-50 hover:bg-slate-100/50 transition-colors border border-slate-100 rounded-[1.5rem] text-sm font-bold outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300" />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="h-14 border-slate-100 bg-slate-50 text-sm font-bold w-full md:w-[220px] rounded-[1.5rem] px-5 outline-none focus:ring-2 focus:ring-slate-900/10">
+            <SelectValue placeholder="All States" />
+          </SelectTrigger>
+          <SelectContent className="z-[200] bg-white rounded-[1.5rem] border-slate-100 shadow-xl overflow-hidden p-1">
+            <SelectItem value="all" className="font-bold rounded-xl focus:bg-slate-100 cursor-pointer py-3">All States</SelectItem>
+            <SelectItem value="active" className="font-bold rounded-xl focus:bg-slate-100 cursor-pointer py-3 text-emerald-600">Active Only</SelectItem>
+            <SelectItem value="banned" className="font-bold rounded-xl focus:bg-slate-100 cursor-pointer py-3 text-rose-600">Restricted Only</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-slate-900 text-[10px] font-black text-white uppercase tracking-widest">
+            <tr>
+              <th className="px-6 py-5 rounded-tl-2xl">Guest Identity</th>
+              <th className="px-6 py-5">Contact Details</th>
+              <th className="px-6 py-5">Account Status</th>
+              <th className="px-6 py-5 text-right rounded-tr-2xl">Operations</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {filtered.map(g => {
+            const isBanned = g.status === 'banned';
+            return (
+              <tr key={g.id} className="group hover:bg-slate-50/80 transition-all">
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-[1rem] flex items-center justify-center text-white text-lg font-black shadow-sm ${isBanned ? 'bg-rose-500 shadow-rose-500/20' : 'bg-slate-900 shadow-slate-900/20'}`}>
+                      {g.first_name[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <span className={`block text-base font-black ${isBanned ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{g.first_name} {g.last_name}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: #{g.id.toString().padStart(4, '0')}</span>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                    <Mail className="w-3.5 h-3.5 text-indigo-500" />{g.email}
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${isBanned ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+                    {isBanned ? 'Restricted' : 'Active'}
+                  </span>
+                </td>
+                <td className="px-6 py-5 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button disabled={isProcessing === g.id} onClick={() => handleAction(g.id, adminService.banGuest, 'Access updated')} className={`p-2.5 rounded-xl transition-colors ${isBanned ? 'bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50' : 'bg-slate-50 text-slate-400 hover:text-amber-600 hover:bg-amber-50'}`}>
+                      {isBanned ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    </button>
+                    <button onClick={() => setEditingGuest(g)} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button disabled={isProcessing === g.id} onClick={() => { if (confirm(`Purge profile ${g.first_name}?`)) handleAction(g.id, adminService.removeGuest, 'Guest removed') }} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredGuests.map((guest) => {
-                const isBanned = guest.status === 'banned';
-                return (
-                  <tr key={guest.id} className={`group hover:bg-slate-50/70 transition-all ${isBanned ? 'bg-red-50/20' : ''}`}>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-sm transition-transform group-hover:scale-105 ${isBanned ? 'bg-slate-400' : 'bg-blue-600'}`}>
-                          {guest.first_name?.charAt(0)}{guest.last_name?.charAt(0)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className={`text-sm font-bold tracking-tight ${isBanned ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
-                            {guest.first_name} {guest.last_name}
-                          </span>
-                          <div className="flex items-center gap-1 mt-0.5">
-                             <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Standard Tier</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <code className="text-[11px] font-black bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-                        {guest.display_id}
-                      </code>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          {guest.email}
-                        </div>
-                        {guest.phone && (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                            <Phone className="w-3 h-3 text-slate-300" />
-                            {guest.phone}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {isBanned ? (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-100">
-                          <div className="w-1 h-1 rounded-full bg-red-600" />
-                          <span className="text-[10px] font-black uppercase">Restricted</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                          <div className="w-1 h-1 rounded-full bg-blue-600 animate-pulse" />
-                          <span className="text-[10px] font-black uppercase">Active Member</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
-                        <button
-                          onClick={() => handleEditClick(guest)}
-                          className="p-2 rounded bg-white text-slate-600 border border-slate-200 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm"
-                          title="Edit Guest"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleBan(guest.id, guest.status || 'active')}
-                          disabled={isProcessing === guest.id}
-                          className={`p-2 rounded border transition-all ${
-                            isBanned 
-                              ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' 
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-red-500 hover:text-red-600 shadow-sm'
-                          }`}
-                          title={isBanned ? 'Lift Restriction' : 'Restrict Account'}
-                        >
-                          {isBanned ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
-                        </button>
-                        <button
-                          onClick={() => handleRemove(guest.id)}
-                          disabled={isProcessing === guest.id}
-                          className="p-2 rounded bg-white text-slate-600 border border-slate-200 hover:border-red-500 hover:text-red-600 transition-all shadow-sm"
-                          title="Purge Record"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {filteredGuests.length === 0 && (
-            <div className="py-20 text-center bg-slate-50/50">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mx-auto mb-4">
-                 <Shield className="w-8 h-8 text-slate-200" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900">No guest profiles found</h3>
-              <p className="text-xs text-slate-500 mt-1">Try adjusting your filters or search keywords.</p>
+            );
+          })}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-slate-300" />
             </div>
-          )}
-        </div>
+            <p className="text-slate-900 font-bold">No profiles found</p>
+            <p className="text-sm text-slate-400 font-medium mt-1">Try adjusting your search criteria</p>
+          </div>
+        )}
       </div>
 
-      {/* Edit Guest Modal */}
-      <Dialog open={editingGuestId !== null} onOpenChange={(open) => { if (!open) handleCloseEdit(); }}>
-        <DialogContent className="bg-white border-slate-200 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-slate-950">Edit Guest Profile</DialogTitle>
-          </DialogHeader>
-          {editFormData && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
-                  <Input
-                    value={editFormData.first_name || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
-                    className="bg-slate-50 border-slate-200"
-                    placeholder="First name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
-                  <Input
-                    value={editFormData.last_name || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
-                    className="bg-slate-50 border-slate-200"
-                    placeholder="Last name"
-                  />
-                </div>
+      <Dialog open={!!editingGuest} onOpenChange={o => { if (!o) setEditingGuest(null); }}>
+        <DialogContent className="sm:max-w-md bg-white rounded-[2.5rem] p-0 overflow-hidden shadow-2xl border-none animate-dialog-popup">
+          <div className="bg-slate-900 p-8 relative overflow-hidden flex justify-between items-center text-white">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full blur-[40px]" />
+            <div className="relative z-10">
+              <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md mb-2 inline-block">Profile Editor</span>
+              <h3 className="text-2xl font-black tracking-tight">Edit Identity</h3>
+            </div>
+            <button onClick={() => setEditingGuest(null)} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors relative z-10"><X className="w-5 h-5" /></button>
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">First Name</label>
+                <input value={editingGuest?.first_name || ''} onChange={e => setEditingGuest({...editingGuest, first_name: e.target.value})} className="h-12 bg-slate-50 border border-slate-100 focus:border-slate-300 rounded-2xl px-4 w-full font-bold text-sm outline-none transition-colors" />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
-                <Input
-                  value={editFormData.email || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                  className="bg-slate-50 border-slate-200"
-                  placeholder="Enter email"
-                  type="email"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
-                <Input
-                  value={editFormData.phone || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                  className="bg-slate-50 border-slate-200"
-                  placeholder="Enter phone number"
-                  type="tel"
-                />
-              </div>
-              <div className="flex gap-2 justify-end pt-4">
-                <button
-                  onClick={handleCloseEdit}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all font-medium text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveGuest}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all font-medium text-sm flex items-center gap-2 disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Last Name</label>
+                <input value={editingGuest?.last_name || ''} onChange={e => setEditingGuest({...editingGuest, last_name: e.target.value})} className="h-12 bg-slate-50 border border-slate-100 focus:border-slate-300 rounded-2xl px-4 w-full font-bold text-sm outline-none transition-colors" />
               </div>
             </div>
-          )}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Email Address</label>
+              <input value={editingGuest?.email || ''} onChange={e => setEditingGuest({...editingGuest, email: e.target.value})} className="h-12 bg-slate-50 border border-slate-100 focus:border-slate-300 rounded-2xl px-4 w-full font-bold text-sm outline-none transition-colors" />
+            </div>
+            <div className="pt-4 flex gap-3 justify-end">
+              <Button variant="ghost" onClick={() => setEditingGuest(null)} className="rounded-2xl px-6 h-12 font-bold hover:bg-slate-50">Cancel</Button>
+              <Button onClick={async () => {
+                setIsSubmitting(true);
+                const res = await adminService.updateGuest(editingGuest.id, editingGuest);
+                if (res.success) { toast.success('Profile updated'); refreshData(); setEditingGuest(null); } else toast.error(res.error || 'Failed');
+                setIsSubmitting(false);
+              }} disabled={isSubmitting} className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl px-8 font-bold h-12 shadow-xl shadow-slate-900/20">
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5 mr-2" />} Save Changes
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
