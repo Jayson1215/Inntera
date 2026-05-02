@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { Eye, Loader2, Search, Building2, Trash2, X, MapPin, User, CalendarDays, CreditCard, Mail, Phone } from 'lucide-react';
+import { Eye, Loader2, Search, Building2, Trash2, User, CalendarDays, CreditCard, Mail, Phone } from 'lucide-react';
 import { useBooking } from '../../context/BookingContext';
-import { Dialog, DialogContent } from '../../components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
 export function AdminBookings() {
@@ -15,7 +15,7 @@ export function AdminBookings() {
   if (isLoading) return <div className="h-[70vh] flex items-center justify-center"><Loader2 className="animate-spin text-emerald-500 w-12 h-12" /></div>;
 
   const getStyle = (s: string) => {
-    const map: any = { confirmed: 'bg-blue-50 text-blue-700', 'checked-in': 'bg-emerald-50 text-emerald-700', 'checked-out': 'bg-slate-50 text-slate-900', pending: 'bg-amber-50 text-amber-700', cancelled: 'bg-rose-50 text-rose-700' };
+    const map: Record<string, string> = { confirmed: 'bg-blue-50 text-blue-700', 'checked-in': 'bg-emerald-50 text-emerald-700', 'checked-out': 'bg-slate-50 text-slate-900', pending: 'bg-amber-50 text-amber-700', cancelled: 'bg-rose-50 text-rose-700' };
     return map[s] || 'bg-slate-50 text-slate-900';
   };
 
@@ -76,7 +76,7 @@ export function AdminBookings() {
       <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-50">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-[10px] font-black text-white uppercase tracking-widest">
-            <tr> <th className="p-8">Booking Ref</th> <th className="p-8">Guest & Property</th> <th className="p-8">Check-in / Check-out</th> <th className="p-8">Status</th> <th className="p-8 text-right">Actions</th> </tr>
+            <tr><th className="p-8">Booking Ref</th><th className="p-8">Guest & Property</th><th className="p-8">Check-in / Check-out</th><th className="p-8">Status</th><th className="p-8 text-right">Actions</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {filtered.map(b => (
@@ -101,7 +101,9 @@ export function AdminBookings() {
       </div>
 
       <Dialog open={!!selectedId} onOpenChange={o => !o && setSelectedId(null)}>
-        <DialogContent className="sm:max-w-4xl bg-slate-50 rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl animate-dialog-popup">
+        <DialogContent aria-describedby={undefined} className="sm:max-w-4xl bg-slate-50 rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl animate-dialog-popup">
+          <DialogTitle className="sr-only">Booking Details</DialogTitle>
+          <DialogDescription className="sr-only">Detailed view of the reservation</DialogDescription>
           <div className="bg-slate-900 p-8 md:p-10 text-white relative flex flex-col md:flex-row md:justify-between md:items-end gap-6">
             <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/20 rounded-full blur-[80px]" />
             <div className="relative z-10">
@@ -150,7 +152,7 @@ export function AdminBookings() {
                 <div className="pt-2">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">State Control</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'].map(s => {
+                    {(['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'] as const).map(s => {
                       const isActive = booking?.booking_status === s;
                       let activeClass = '';
                       if (isActive) {
@@ -161,7 +163,7 @@ export function AdminBookings() {
                         else if (s === 'cancelled') activeClass = 'bg-rose-500 text-white shadow-md shadow-rose-500/20 border-rose-500';
                       }
                       return (
-                        <button key={s} onClick={() => updateBookingStatus(booking!.booking_id, s as any)} className={`py-2 px-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${isActive ? activeClass : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50'}`}> {s.replace('_', ' ')} </button>
+                        <button key={s} onClick={() => updateBookingStatus(booking!.booking_id, s)} className={`py-2 px-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${isActive ? activeClass : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50'}`}> {s.replace('-', ' ')} </button>
                       );
                     })}
                   </div>

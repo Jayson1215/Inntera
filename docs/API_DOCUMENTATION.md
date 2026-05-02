@@ -17,13 +17,13 @@ The Inntera Backend provides a robust REST API for all platform operations. All 
 ## 📅 Reservations
 - **GET** `/api/bookings`: List reservations (filtered by role).
 - **POST** `/api/bookings`: Create a new reservation.
-- **POST** `/api/bookings/walk-in`: Direct staff-initiated booking.
 - **PATCH** `/api/bookings/{id}/status`: Transition booking lifecycle (confirmed → checked-in).
 - **DELETE** `/api/bookings/{id}`: Cancel/Remove reservation.
 
 ## 💳 Finance & Payments
 - **GET** `/api/payments`: Transaction history.
 - **POST** `/api/payments`: Record a new payment (linked to booking).
+- **POST** `/api/payments/verify`: Validate user-submitted reference IDs (GCash/Maya).
 - **GET** `/api/rates`: Current pricing data.
 
 ## 👥 Management

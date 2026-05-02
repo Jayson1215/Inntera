@@ -62,7 +62,15 @@ class RoomController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $room = Room::create($validated);
+        $data = $validated;
+        if (isset($data['hotel_id'])) {
+            $hotel = \App\Models\Hotel::find($data['hotel_id']);
+            if ($hotel) {
+                $data['hotel_name'] = $hotel->name;
+            }
+        }
+
+        $room = Room::create($data);
 
         return response()->json([
             'success' => true,
@@ -84,7 +92,15 @@ class RoomController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $room->update($this->filterUpdateData($validated));
+        $data = $this->filterUpdateData($validated);
+        if (isset($data['hotel_id'])) {
+            $hotel = \App\Models\Hotel::find($data['hotel_id']);
+            if ($hotel) {
+                $data['hotel_name'] = $hotel->name;
+            }
+        }
+
+        $room->update($data);
 
         return response()->json([
             'success' => true,

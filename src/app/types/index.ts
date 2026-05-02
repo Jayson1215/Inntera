@@ -60,6 +60,7 @@ export interface RoomAmenity {
 export interface Room {
   room_id: number;
   hotel_id: number;
+  hotel_name?: string;
   room_type_id: number;
   room_number: string;
   floor: string;

@@ -30,22 +30,18 @@ Inntera is an enterprise hospitality OS designed to handle every aspect of hotel
 ### 🛎️ Guest Transition Management
 - **Arrivals Dashboard**: A prioritized view of "Confirmed" bookings ready for check-in.
 - **Smart Check-in Flow**:
-    - Automatic balance calculation.
-    - Settlement recording (Cash/Card/Wallet).
-    - Room assignment verification.
-- **Departure Processing**: One-click check-out for guests, freeing up room inventory immediately.
+    - Automatic balance calculation based on `payments` history.
+    - Settlement recording for remaining balances.
+    - Physical room assignment from inventory.
+- **Departure Processing**: Transitioning bookings to `checked-out` status, triggering housekeeping turnover.
 
 ### 🧹 Inventory Turnover Matrix
-- **Turnover Status Bar**: Dedicated controls to transition rooms between:
-    - `Ready`: Available for immediate occupancy.
-    - `Occupied`: Guest is currently in-residence.
-    - `Housekeeping`: Cleaning in progress (Emerald Badge).
-    - `Maintenance`: Out of order for repairs (Rose Badge).
-- **Matrix Filtering**: Isolate rooms by status to coordinate housekeeping staff efficiently.
+- **Real-time Status Control**: Dedicated controls to transition rooms between `available`, `occupied`, `housekeeping`, and `maintenance`.
+- **Occupancy Tracking**: High-contrast badges and tooltips to monitor guest residence.
 
 ### 📝 Operational Efficiency
-- **Walk-in Reservations**: Ability to create new bookings directly for guests arriving without a prior reservation.
-- **Command Notifications**: Real-time alerts for new bookings or internal management updates.
+- **Reference ID Verification**: A dedicated process for staff to review PayMongo reference IDs submitted by guests, ensuring financial security.
+- **Command Notifications**: Real-time alerts for new reservations or internal management updates.
 
 ---
 
@@ -53,22 +49,16 @@ Inntera is an enterprise hospitality OS designed to handle every aspect of hotel
 *A frictionless, premium digital experience for travelers.*
 
 ### 🔍 Discovery & Search
-- **Smart Search**: Destination-based hotel discovery with real-time occupancy checks.
-- **Luxury Browsing**: Detailed property views with amenity icons, star ratings, and high-resolution galleries.
-- **Instant Quotes**: Precise total cost calculation based on check-in/out dates and guest counts.
+- **Property Exploration**: Destination-based hotel discovery with high-fidelity imagery and detailed room-type descriptions.
+- **Instant Quotes**: Real-time calculation of total stay costs including taxes and fees.
 
 ### 💳 Integrated Settlement Vault
-- **Multi-Channel Payments**: 
-    - **Cash (Pay at Hotel)**: Integrated settlement workflow.
-    - **E-Wallets**: Native support for **GCash** and **Maya** with reference number submission and verification.
-- **Status Intelligence**: Real-time tracking of payment status (Unpaid, Pending Verification, Paid in Full).
+- **PayMongo Integration**: Native support for GCash, Maya, and GrabPay.
+- **Self-Service Verification**: Guests input their transaction reference ID directly into the portal to transition bookings from `pending` to `confirmed`.
 
 ### 🛡️ Reservation Management
-- **Digital Vault**: Secure access to all "Upcoming" and "Past" journeys.
-- **Self-Service Verification**: 
-    - **PDF Receipts**: Instant generation of official stay receipts for business or personal use.
-    - **Smart Cancellation**: Self-service cancellation for future stays, automatically restricted once the guest is "In Residence".
-- **Real-time Sync**: Instant updates when staff confirm a check-in or update a room status.
+- **Digital Ledger**: Access to upcoming and historical reservations.
+- **Dynamic Receipts**: Instant PDF generation for confirmed bookings.
 
 ---
 

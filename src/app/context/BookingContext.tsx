@@ -48,7 +48,6 @@ interface BookingContextType {
   updateGuest: (id: number, data: any) => Promise<{ success: boolean; data?: Guest; error?: string }>;
   deleteGuest: (id: number) => Promise<{ success: boolean; error?: string }>;
   createBooking: (data: any) => Promise<{ success: boolean; data?: Booking; error?: string }>;
-  createWalkInBooking: (data: any) => Promise<{ success: boolean; data?: Booking; error?: string }>;
   deleteBooking: (id: number) => Promise<{ success: boolean; error?: string }>;
   confirmCheckIn: (bookingId: number, paymentData?: any, notes?: string) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
@@ -174,7 +173,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const deleteGuest = (id: number) => handleResponse<void>(guestService.delete(id), 'Guest deleted');
 
   const createBooking = (data: any) => handleResponse<Booking>(bookingService.create(data), 'Booking created');
-  const createWalkInBooking = (data: any) => handleResponse<Booking>(bookingService.createWalkIn(data), 'Walk-in reservation completed');
   const deleteBooking = (id: number) => handleResponse<void>(bookingService.delete(id), 'Reservation cancelled');
 
   const confirmCheckIn = useCallback(async (bookingId: number, paymentData?: any, notes?: string) => {
@@ -308,7 +306,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     updateGuest,
     deleteGuest,
     createBooking,
-    createWalkInBooking,
     deleteBooking,
     confirmCheckIn,
     isLoading,

@@ -37,10 +37,22 @@ Inntera follows a **decoupled Client-Server architecture**, separating the high-
 - **Radix UI**: Provides the accessible primitives for Modals (Dialog), Sidebars (Sheet), and Menus.
 - **Sonner**: High-performance toast notifications for system feedback.
 - **html2canvas / jsPDF**: Client-side logic for generating and downloading dynamic PDF receipts.
+- **PayMongo SDK/API**: Integrated for processing digital payments via GCash, Maya, and GrabPay.
 
 ---
 
-## 3. Backend Ecosystem (Laravel)
+## 4. Developer Tools & Standards
+
+### CLI Infrastructure
+- **@jayson1215/skills**: A custom-built CLI tool (accessible via `npx Jayson1215/skills`) that enforces project-wide AI coding standards, UI/UX aesthetics, and architectural rules through a generated `.cursorrules` file.
+
+### Design Standards
+- **SaaS-Grade UI**: Strictly follows a "premium" aesthetic featuring high-contrast color palettes (Emerald/Slate/Black), glassmorphism, and dynamic interactive button states.
+- **Status Consistency**: Enforces hyphenated status strings (e.g., `checked-in`, `checked-out`) across both frontend and backend systems.
+
+---
+
+## 5. Backend Ecosystem (Laravel)
 
 ### Engine & API
 - **Laravel 10**: The primary engine for data persistence and business logic.

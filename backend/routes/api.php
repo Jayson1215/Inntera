@@ -58,7 +58,6 @@ Route::patch('/rooms/{room}/status', [RoomController::class, 'updateStatus']);
 Route::apiResource('room-types', RoomTypeController::class)->except(['destroy']);
 
 // Bookings
-Route::post('/bookings/walk-in', [BookingController::class, 'storeWalkIn']);
 Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
 

@@ -8,111 +8,140 @@ This document provides a comprehensive blueprint of the Inntera relational datab
 
 ```mermaid
 erDiagram
-    USERS ||--o{ STAFF : profile_for
-    USERS ||--o{ GUESTS : profile_for
-    HOTELS ||--o{ STAFF : employs
-    HOTELS ||--o{ ROOM_TYPES : defines
-    HOTELS ||--o{ ROOMS : contains
-    HOTELS ||--o{ RATES : sets
-    HOTELS ||--o{ BOOKINGS : receives
-    ROOM_TYPES ||--o{ ROOM_AMENITIES : has
-    ROOM_TYPES ||--o{ ROOMS : categorizes
-    ROOM_TYPES ||--o{ RATES : priced_by
-    AMENITIES ||--o{ ROOM_AMENITIES : included_in
-    GUESTS ||--o{ BOOKINGS : makes
-    BOOKINGS ||--o{ BOOKING_ROOMS : contains
-    BOOKINGS ||--o{ CHARGES : incurs
-    BOOKINGS ||--o{ PAYMENTS : paid_via
+  HOTELS ||--o{ MANAGERS : has
+  HOTELS ||--o{ STAFF : employs
+  HOTELS ||--o{ ROOM_TYPES : defines
+  HOTELS ||--o{ ROOMS : contains
+  HOTELS ||--o{ RATES : sets
+  HOTELS ||--o{ BOOKINGS : receives
+  ROOM_TYPES ||--o{ ROOM_AMENITIES : has
+  ROOM_TYPES ||--o{ ROOMS : categorizes
+  ROOM_TYPES ||--o{ RATES : priced_by
+  AMENITIES ||--o{ ROOM_AMENITIES : included_in
+  GUESTS ||--o{ BOOKINGS : makes
+  BOOKINGS ||--o{ BOOKING_ROOMS : contains
+  BOOKINGS ||--o{ CHARGES : incurs
+  BOOKINGS ||--o{ PAYMENTS : paid_via
 
-    USERS {
-        bigint id PK
-        string name
-        string email UK
-        string password
-        enum role "admin, staff, guest"
-        soft_deletes deleted_at
-    }
-
-    HOTELS {
-        bigint id PK
-        string display_id UK
-        string name
-        string address
-        string city
-        string phone
-        string email
-        string image_url
-        decimal latitude
-        decimal longitude
-    }
-
-    GUESTS {
-        bigint id PK
-        string display_id UK
-        bigint user_id FK
-        string first_name
-        string last_name
-        string email UK
-        string phone
-        text address
-        string loyalty_member_id
-        enum status "active, banned"
-    }
-
-    STAFF {
-        bigint id PK
-        string display_id UK
-        bigint user_id FK
-        bigint hotel_id FK
-        enum position "manager, receptionist, housekeeping, maintenance"
-        enum status "active, suspended"
-        timestamp hire_date
-    }
-
-    ROOM_TYPES {
-        bigint room_type_id PK
-        bigint hotel_id FK
-        string name
-        text description
-        decimal base_price
-        integer max_occupancy
-        string image_url
-    }
-
-    ROOMS {
-        bigint room_id PK
-        bigint hotel_id FK
-        bigint room_type_id FK
-        string room_number
-        enum floor
-        enum status "available, occupied, housekeeping, maintenance"
-        text notes
-    }
-
-    BOOKINGS {
-        bigint booking_id PK
-        string booking_reference UK
-        bigint guest_id FK
-        bigint hotel_id FK
-        date checkin_date
-        date checkout_date
-        enum booking_status "pending, confirmed, checked-in, checked-out, cancelled"
-        decimal total_cost
-        text notes
-    }
-
-    PAYMENTS {
-        bigint payment_id PK
-        bigint booking_id FK
-        decimal amount
-        enum payment_method "credit_card, cash, gcash, maya, bank_transfer"
-        enum status "pending, completed, failed"
-        string transaction_id
-        timestamp payment_date
-    }
+  HOTELS {
+    integer hotel_id PK
+    varchar name
+    varchar address
+    varchar city
+    varchar phone
+    varchar timezone
+    timestamp created_at
+  }
+  MANAGERS {
+    integer manager_id PK
+    integer hotel_id FK
+    varchar first_name
+    varchar last_name
+    varchar email
+    varchar phone
+    varchar role
+    timestamp hired_at
+  }
+  STAFF {
+    integer staff_id PK
+    integer hotel_id FK
+    varchar name
+    varchar role
+    varchar email
+    varchar phone
+  }
+  ROOM_TYPES {
+    integer room_type_id PK
+    integer hotel_id FK
+    varchar name
+    text description
+    integer max_occupancy
+    decimal base_price
+    text amenities_summary
+  }
+  AMENITIES {
+    integer amenity_id PK
+    varchar name
+    text description
+  }
+  ROOM_AMENITIES {
+    integer room_amenity_id PK
+    integer room_type_id FK
+    integer amenity_id FK
+  }
+  ROOMS {
+    integer room_id PK
+    integer hotel_id FK
+    varchar hotel_name
+    integer room_type_id FK
+    varchar room_number
+    varchar floor
+    varchar status
+    text notes
+  }
+  RATES {
+    integer rate_id PK
+    integer hotel_id FK
+    integer room_type_id FK
+    date start_date
+    date end_date
+    decimal price
+    varchar currency
+  }
+  GUESTS {
+    integer guest_id PK
+    varchar first_name
+    varchar middle_name
+    varchar last_name
+    varchar email
+    varchar phone
+    text address
+    varchar loyalty_member_id
+    timestamp created_at
+  }
+  BOOKINGS {
+    integer booking_id PK
+    integer hotel_id FK
+    integer guest_id FK
+    varchar guest_name
+    varchar booking_reference
+    timestamp checkin_date
+    timestamp checkout_date
+    varchar booking_status
+    timestamp created_at
+    timestamp modified_at
+    text notes
+  }
+  BOOKING_ROOMS {
+    integer booking_room_id PK
+    integer booking_id FK
+    integer room_id
+    integer room_type_id
+    decimal rate
+    integer adults_count
+    integer children_count
+    varchar status
+    timestamp allocated_at
+  }
+  CHARGES {
+    integer charge_id PK
+    integer booking_id FK
+    varchar description
+    decimal amount
+    decimal tax_amount
+    timestamp charge_date
+  }
+  PAYMENTS {
+    integer payment_id PK
+    integer booking_id FK
+    decimal amount
+    varchar currency
+    varchar payment_method
+    varchar status
+    varchar transaction_reference
+    timestamp paid_at
+  }
 ```
-
----
 
 ## 📁 Detailed Table Definitions
 
@@ -120,26 +149,27 @@ erDiagram
 | Table | Description | Primary Key | Foreign Keys |
 | :--- | :--- | :--- | :--- |
 | `users` | The core authentication table for all users. | `id` | - |
-| `guests` | Extended profiles for guest-role users. | `id` | `user_id` |
-| `staff` | Operational profiles for staff-role users. | `id` | `user_id`, `hotel_id` |
+| `guests` | Extended profiles for guest-role users. | `guest_id` | - |
+| `managers` | Professional profiles for management staff. | `manager_id` | `hotel_id` |
+| `staff` | Operational profiles for staff-role users. | `staff_id` | `hotel_id` |
 
 ### 🏨 02. Property Management
 | Table | Description | Primary Key | Foreign Keys |
 | :--- | :--- | :--- | :--- |
-| `hotels` | Master record of hotel properties. | `id` | - |
+| `hotels` | Master record of hotel properties. | `hotel_id` | - |
 | `room_types` | Definitions of room classes and base rates. | `room_type_id` | `hotel_id` |
 | `rooms` | Individual physical room units. | `room_id` | `hotel_id`, `room_type_id` |
 | `amenities` | Global list of room features. | `amenity_id` | - |
-| `room_amenities`| Pivot linking types to amenities. | `id` | `room_type_id`, `amenity_id`|
+| `room_amenities`| Pivot linking types to amenities. | `room_amenity_id` | `room_type_id`, `amenity_id`|
 
 ### 📅 03. Reservation Engine
 | Table | Description | Primary Key | Foreign Keys |
 | :--- | :--- | :--- | :--- |
-| `bookings` | The primary reservation ledger. | `booking_id` | `guest_id`, `hotel_id` |
-| `booking_rooms` | Junction table for rooms in a booking. | `id` | `booking_id`, `room_id` |
-| `rates` | Time-based pricing overrides. | `rate_id` | `room_type_id` |
+| `bookings` | The primary reservation ledger (includes `guest_name` for optimization). | `booking_id` | `guest_id`, `hotel_id` |
+| `booking_rooms` | Junction table for rooms in a booking. | `booking_room_id` | `booking_id`, `room_id` |
+| `rates` | Time-based pricing overrides. | `rate_id` | `hotel_id`, `room_type_id` |
 | `payments` | Settlement records for bookings. | `payment_id` | `booking_id` |
-| `charges` | Incidental costs (Food, Mini-bar). | `charge_id` | `booking_id` |
+| `charges` | Incidental costs and fees. | `charge_id` | `booking_id` |
 
 ---
 

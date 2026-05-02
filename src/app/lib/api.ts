@@ -244,13 +244,6 @@ export const bookingService = {
     return this.updateStatus(booking_id, 'checked-out');
   },
   
-  async createWalkIn(data: Record<string, unknown>): Promise<ApiResponse<Booking>> {
-    return apiFetch<Booking>('/bookings/walk-in', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-  
   async delete(id: number): Promise<ApiResponse<void>> {
     return apiFetch<void>(`/bookings/${id}`, {
       method: 'DELETE',

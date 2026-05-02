@@ -1,6 +1,6 @@
-# Hotel Booking System - Client Reservation Flow Analysis
+# Hotel Booking System - Client Reservation Flow Analysis (v2.0)
 
-## 1. COMPLETE FLOW: "Confirm Reservation" to Success
+## 1. MODERNIZED FLOW: "Confirm Reservation" to Success
 
 ### Frontend Flow (ClientReservationPage.tsx)
 
@@ -9,57 +9,27 @@
    - Check-in date & check-out date
    - Guest first/last name, email, phone, address
    - Discount type (None/Senior/PWD) with optional ID number
-   - Payment method (Cash or Credit/Debit Card)
+   - Payment method (E-Wallet: GCash/Maya/GrabPay or Cash)
 
 2. Frontend validation on `handleConfirmBooking()`:
-   - Validates dates are selected
-   - Validates all required fields: first_name, last_name, email, phone, address (must not be empty/trimmed)
-   - If discount selected: validates idNumber is provided
-   - Finds available room matching room_type_id and hotel_id with status='available'
+   - Validates dates are selected.
+   - Validates all required fields: first_name, last_name, email, phone, address.
+   - **New**: Captures `guest_name` as a single string for optimized ledger display.
 
-#### Step 2: Data Construction
-```javascript
-const bookingData = {
-  guest_id: user?.id (optional),
-  hotel_id: number,
-  checkin_date: ISO string,
-  checkout_date: ISO string,
-  total_cost: number (calculated as: base_price × nights × discount_factor),
-  notes: string (contains all guest details in formatted text),
-  rooms: [{
-    room_id: number,
-    adults_count: number,
-    children_count: number,
-    rate: number,
-    number_of_nights: number
-  }],
-  guest_details: {
-    first_name, last_name, email, phone, address
-  },
-  payment: {
-    method: string ('Cash' or 'Credit/Debit Card'),
-    amount: number (30% downpayment),
-    status: 'pending',
-    transaction_id: 'TXN-{timestamp}-{random}',
-    notes: string (payment summary)
-  }
-}
-```
+#### Step 2: Data Construction & PayMongo Handshake
+1. System prepares the booking object with `booking_status: 'pending'`.
+2. Total cost is calculated including any applicable discounts.
+3. A payment object is constructed with `status: 'pending'`.
 
-#### Step 3: API Call
-- Calls `createBooking(bookingData)` from BookingContext
-- Which calls `bookingService.create(data)` from api.ts
-- Makes POST request to `/api/bookings` with JSON body
+#### Step 3: API Call & Response
+- Makes POST request to `/api/bookings`.
+- **Backend Optimization**: The backend now persists `guest_name` directly in the `bookings` table to avoid N+1 query overhead on the Admin Ledger.
 
-#### Step 4: Frontend Response Handling
-```javascript
-if (result.success) {
-  toast.success('Your reservation has been confirmed!');
-  setTimeout(() => navigate('/client/bookings'), 2000);
-} else {
-  toast.error(result.error || 'Failed to complete reservation');
-}
-```
+#### Step 4: Self-Service Verification (The "Bridge")
+- After successful booking creation, the guest is prompted to complete payment via PayMongo.
+- Once paid, the guest inputs their **Transaction Reference ID**.
+- Frontend calls `POST /api/payments/verify`.
+- Backend validates the reference, creates the `Payment` record, and transitions the booking to `confirmed`.
 
 ---
 

@@ -104,7 +104,7 @@ export function AdminDashboard() {
             <div className="grid grid-cols-2 gap-8">
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest">Guest Profile</p>
-...
+                <p className="text-xl font-black text-slate-900">{selectedGuest ? `${selectedGuest.first_name} ${selectedGuest.last_name}` : 'Unknown Guest'}</p>
                 <p className="text-[10px] font-black uppercase text-slate-900 tracking-widest">Revenue Status</p>
                 <div className="inline-flex px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100 mt-2">
                   ₱{Number(selectedBooking?.total_cost).toLocaleString()} • {selectedBooking?.booking_status.replace('_', ' ')}
